@@ -1,0 +1,141 @@
+# NeuralCensor
+
+An AI-powered tool for fully automatic, pixel-precise image anonymization. NeuralCensor combines three state-of-the-art models into a single pipeline:
+
+1. **YOLOv8** — blazing-fast object detection for persons & vehicles  
+2. **SAM 3 (Segment Anything 3)** — pixel-perfect contour masks  
+3. **Ollama Vision LLM** — paranoid verification with automatic SAM 3 re-segmentation  
+
+Every step runs **100% locally** on your machine. No images are ever uploaded to any cloud.
+
+---
+
+## Key Features
+
+- **Privacy First** — All processing happens on-device. Your images never leave your machine.
+- **Comprehensive Detection** — YOLOv8 detects persons, cars, trucks, buses, motorcycles, and bicycles — even in dense crowds or far backgrounds.
+- **Pixel-Perfect Masking** — SAM 3 replaces crude bounding-box blurs with exact contour masks that follow each object's outline.
+- **Multi-Pass Gaussian Blur** — 3× Gaussian blur + pixel quantization makes reconstruction practically impossible.
+- **Strict LLM Verification** — After initial anonymization, a local Vision LLM (e.g. Gemma 4) reviews the result. It is instructed to be *paranoid*: even a single visible head, arm, or silhouette counts as a missed person.
+- **SAM 3 Second Pass** — If the LLM finds missed objects, their bounding boxes are fed back into **SAM 3** (not YOLO — which would return the same results). SAM 3 generates precise masks for the missed objects, which are then blurred. This provides a true correction layer.
+- **Batch Processing** — Process single images or entire folders via a modern dark-themed GUI.
+- **Automated Setup** — `start.bat` installs everything on first run: Python venv, PyTorch + CUDA, YOLO, SAM 3, and the model checkpoint.
+
+---
+
+## How the Pipeline Works
+
+<p align="center">
+  <img src="neuralcensor_flowchart_en.svg" alt="NeuralCensor Pipeline Flowchart" width="680">
+</p>
+
+### Why SAM 3 instead of YOLO for the second pass?
+
+Re-running YOLO after Ollama verification would return the **exact same detections** as before — it has no new information. Instead, we take Ollama's bounding boxes and feed them directly to SAM 3, which generates **new, precise pixel masks** for objects that YOLO originally missed. This gives us a genuine correction layer with pixel-level precision.
+
+---
+
+## Prerequisites
+
+| Requirement | Details |
+|---|---|
+| **NVIDIA GPU** | Required for CUDA acceleration (SAM 3 + YOLO) |
+| **Python 3.12+** | Recommended for SAM 3 compatibility |
+| **Ollama** | Must be installed and running. Pull a vision model, e.g. `ollama pull gemma4:e4b` |
+| **Git** | Required for SAM 3 installation from GitHub |
+| **HuggingFace Account** | Required for downloading the SAM 3 checkpoint (free, gated access) |
+
+---
+
+## Installation & Quick Start
+
+NeuralCensor handles the entire setup automatically via `start.bat`.
+
+1. Clone or download this repository.
+2. Ensure you have sufficient disk space (~10 GB for PyTorch, SAM 3, and model checkpoints).
+3. **Double-click `start.bat`**.
+
+### What `start.bat` does on first run:
+
+1. Creates an isolated Python virtual environment (`venv`)
+2. Installs PyTorch 2.10 with CUDA 12.8
+3. Installs all dependencies from `requirements.txt`
+4. Installs SAM 3 from the official GitHub repository
+5. Prompts for your HuggingFace token and downloads the SAM 3 checkpoint
+6. Verifies that Ollama is running and pulls `gemma4:e4b` if needed
+7. Launches the NeuralCensor GUI
+
+> On subsequent runs, `start.bat` skips installation and launches the GUI directly.
+
+---
+
+## Usage
+
+1. Run `start.bat` (or activate the venv and run `python neuralcensor.py`).
+2. Select the **Verification Model** in the settings panel (e.g. `gemma4:e4b`).
+3. Choose a **Single Image** or an **Input Folder**.
+4. *(Optional)* Select an output folder. If left blank, a `NeuralCensor_Blurry` folder is created automatically.
+5. Click **▶ Start Processing**.
+6. Monitor the real-time log:
+   - `YOLO Detection` → `SAM 3 Mask Refinement` → `Pixelation` → `Ollama Verification` → *(optional)* `SAM 3 2nd Pass`
+
+An `Anonymization_Report.txt` is generated in the output folder documenting each image's processing status.
+
+---
+
+## YOLO Detection Classes
+
+| Class ID | Label |
+|---|---|
+| 0 | Person |
+| 2 | Car |
+| 3 | Motorcycle |
+| 5 | Bus |
+| 7 | Truck |
+
+---
+
+## Configuration
+
+Key constants can be adjusted at the top of `neuralcensor.py`:
+
+| Constant | Default | Description |
+|---|---|---|
+| `YOLO_CONF` | 0.25 | YOLO confidence threshold (lower = more detections) |
+| `SAM3_CONFIDENCE` | 0.35 | SAM 3 mask confidence threshold |
+| `BLUR_KERNEL_BASE` | 101 | Gaussian blur kernel size (must be odd) |
+| `BLUR_PASSES` | 3 | Number of blur passes per mask |
+| `QUANTIZE_STEP` | 8 | Pixel quantization step (anti-reconstruction) |
+| `PADDING_FRACTION` | 0.04 | Mask edge padding (contour dilation) |
+| `OLLAMA_MAX_SIZE` | 1536 | Max image edge length sent to Ollama |
+
+---
+
+## Open Source & Licensing
+
+NeuralCensor is open-source. The underlying AI models and libraries carry their own licenses:
+
+| Component | License |
+|---|---|
+| **YOLOv8 (Ultralytics)** | AGPL-3.0 — public distribution requires open-sourcing modifications |
+| **SAM 3 (Meta)** | Apache 2.0 |
+| **Ollama** | MIT |
+| **Gemma 4 (Google)** | Gemma License — allows commercial use with specific redistribution terms |
+| **OpenCV** | Apache 2.0 |
+| **PyTorch** | BSD-3-Clause |
+
+---
+
+## Project Structure
+
+```
+NeuralCensor/
+├── neuralcensor.py      # Main application (GUI + processing pipeline)
+├── start.bat            # Automated setup & launch script
+├── requirements.txt     # Python dependencies
+├── README.md
+├── LICENSE
+├── yolov8n.pt           # YOLOv8 nano model (auto-downloaded)
+└── checkpoints/
+    └── sam3/             # SAM 3 model checkpoint (downloaded via HuggingFace)
+```
