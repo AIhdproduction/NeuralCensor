@@ -865,7 +865,7 @@ class NeuralCensorApp(ctk.CTk):
                      font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
                      text_color="#a0a0b0").pack(anchor="w", padx=16, pady=(14, 4))
 
-        self._make_button(left, "📂  Browse Input ...", self._open_input_picker)
+        self._make_button(left, "📂  Browse Input", self._browse_input)
 
         self.lbl_input = ctk.CTkLabel(left, text="No path selected",
                                       font=ctk.CTkFont(size=11), text_color="#a0a0b0",
@@ -1060,133 +1060,103 @@ class NeuralCensorApp(ctk.CTk):
         self.log_box.configure(state="disabled")
 
     # ── File/folder selection ───────────────────────────────
-    def _open_input_picker(self):
-        """Opens a small modal dialog to choose the input type."""
-        picker = ctk.CTkToplevel(self)
-        picker.title("Select Input")
-        picker.geometry("300x230")
-        picker.configure(fg_color="#0d0d1a")
-        picker.resizable(False, False)
-        picker.transient(self)
-        picker.grab_set()
-
-        # Center on parent
-        picker.update_idletasks()
-        x = self.winfo_x() + (self.winfo_width()  - 300) // 2
-        y = self.winfo_y() + (self.winfo_height() - 230) // 2
-        picker.geometry(f"+{x}+{y}")
-
-        ctk.CTkLabel(
-            picker, text="What would you like to process?",
-            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-            text_color="#eaeaea",
-        ).pack(padx=20, pady=(18, 12))
-
-        def pick(fn):
-            picker.destroy()
-            fn()
-
-        ctk.CTkButton(
-            picker, text="🖼️  Image(s)",
-            font=ctk.CTkFont(family="Segoe UI", size=13),
-            fg_color="#0f3460", hover_color="#1a4a7a",
-            corner_radius=8, height=38, anchor="w",
-            command=lambda: pick(self._choose_single_image),
-        ).pack(fill="x", padx=20, pady=(0, 6))
-
-        ctk.CTkButton(
-            picker, text="📁  Folder (flat)",
-            font=ctk.CTkFont(family="Segoe UI", size=13),
-            fg_color="#0f3460", hover_color="#1a4a7a",
-            corner_radius=8, height=38, anchor="w",
-            command=lambda: pick(self._choose_input_folder),
-        ).pack(fill="x", padx=20, pady=(0, 6))
-
-        ctk.CTkButton(
-            picker, text="🗂️  Root Folder (with subfolders)",
-            font=ctk.CTkFont(family="Segoe UI", size=13),
-            fg_color="#0f3460", hover_color="#1a4a7a",
-            corner_radius=8, height=38, anchor="w",
-            command=lambda: pick(self._choose_root_folder),
-        ).pack(fill="x", padx=20, pady=(0, 6))
-
-    def _choose_single_image(self):
-        """Allows selecting one or more individual image files."""
-        paths = filedialog.askopenfilenames(
-            title="Select Image(s)",
-            filetypes=[("Image files", "*.jpg *.jpeg *.png *.bmp *.tiff *.tif *.webp"),
-                       ("All files", "*.*")],
-        )
-        if paths:
-            self._input_paths    = [Path(p) for p in paths]
-            self._output_dir_map = None
-            self._output_dir     = None
-            count = len(self._input_paths)
-            if count == 1:
-                self.lbl_input.configure(text=self._input_paths[0].name, text_color="#4ade80")
-            else:
-                self.lbl_input.configure(text=f"{count} images selected", text_color="#4ade80")
-            self.lbl_output.configure(text="Auto: NeuralCensor_Blurry/", text_color="#fbbf24")
-
-    def _choose_input_folder(self):
-        folder = filedialog.askdirectory(title="Select Input Folder")
-        if folder:
-            p = Path(folder)
-            files = [f for f in p.iterdir()
-                     if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS]
-            self._input_paths   = sorted(files)
-            self._output_dir_map = None  # reset subfolder mode
-            self._output_dir     = None  # reset manual output dir
-            count = len(files)
-            self.lbl_input.configure(
-                text=f"{p.name}/ ({count} images)",
-                text_color="#4ade80" if count > 0 else "#f87171",
-            )
-            self.lbl_output.configure(text="Auto: NeuralCensor_Blurry/", text_color="#fbbf24")
-
-    def _choose_root_folder(self):
-        """Selects a root folder whose immediate subdirectories each contain images.
-        Each subfolder is processed separately; results go into subfolder/NeuralCensor_Blurry/.
+    def _browse_input(self):
         """
-        folder = filedialog.askdirectory(title="Select Root Folder (with image subfolders)")
+        Opens a single folder dialog.  Automatically detects the structure:
+          • Folder has images directly        → flat mode
+          • Folder has subfolders with images  → subfolder mode
+          • Both                               → combines both
+          • No images anywhere                 → error label
+        """
+        folder = filedialog.askdirectory(title="Select Folder with Images")
         if not folder:
             return
+
         root = Path(folder)
-        # Find all immediate subdirectories that contain at least one image
+
+        # 1. Collect images directly in the selected folder
+        root_images = sorted(
+            f for f in root.iterdir()
+            if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
+        )
+
+        # 2. Collect images inside immediate subdirectories
         output_dir_map: dict[Path, Path] = {}
-        all_files: list[Path] = []
+        sub_images: list[Path] = []
         subdirs_found = 0
         for sub in sorted(root.iterdir()):
-            if not sub.is_dir():
+            if not sub.is_dir() or sub.name == AUTO_OUTPUT_NAME:
                 continue
-            images = sorted(f for f in sub.iterdir()
-                            if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS)
+            images = sorted(
+                f for f in sub.iterdir()
+                if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
+            )
             if not images:
                 continue
             subdirs_found += 1
             out_dir = sub / AUTO_OUTPUT_NAME
             for img in images:
                 output_dir_map[img] = out_dir
-            all_files.extend(images)
+            sub_images.extend(images)
 
-        if not all_files:
+        # 3. Determine mode based on what was found
+        has_root  = len(root_images) > 0
+        has_subs  = len(sub_images) > 0
+
+        if not has_root and not has_subs:
             self.lbl_input.configure(
-                text=f"{root.name}/ – no images found in subfolders",
+                text=f"{root.name}/ – no images found",
                 text_color="#f87171",
             )
             return
 
-        self._input_paths    = all_files
-        self._output_dir_map = output_dir_map
-        self._output_dir     = None  # not used in subfolder mode
-        self.lbl_input.configure(
-            text=f"{root.name}/ ({subdirs_found} subfolders, {len(all_files)} images)",
-            text_color="#4ade80",
-        )
-        self.lbl_output.configure(
-            text=f"Auto: each subfolder/{AUTO_OUTPUT_NAME}/",
-            text_color="#4ade80",
-        )
+        # Reset state
+        self._output_dir     = None
+        self._output_dir_map = None
+        self._input_paths    = []
+
+        if has_root and not has_subs:
+            # ── Flat mode: images only in the root folder ──
+            self._input_paths = root_images
+            self.lbl_input.configure(
+                text=f"{root.name}/ ({len(root_images)} images)",
+                text_color="#4ade80",
+            )
+            self.lbl_output.configure(
+                text=f"Auto: {root.name}/{AUTO_OUTPUT_NAME}/",
+                text_color="#fbbf24",
+            )
+
+        elif has_subs and not has_root:
+            # ── Subfolder mode: images only in subdirectories ──
+            self._input_paths    = sub_images
+            self._output_dir_map = output_dir_map
+            self.lbl_input.configure(
+                text=f"{root.name}/ ({subdirs_found} subfolders, {len(sub_images)} images)",
+                text_color="#4ade80",
+            )
+            self.lbl_output.configure(
+                text=f"Auto: each subfolder/{AUTO_OUTPUT_NAME}/",
+                text_color="#4ade80",
+            )
+
+        else:
+            # ── Mixed mode: images in root AND in subfolders ──
+            # Root images get their own output dir too
+            root_out = root / AUTO_OUTPUT_NAME
+            for img in root_images:
+                output_dir_map[img] = root_out
+            self._input_paths    = root_images + sub_images
+            self._output_dir_map = output_dir_map
+            total = len(root_images) + len(sub_images)
+            self.lbl_input.configure(
+                text=f"{root.name}/ ({len(root_images)} root + {subdirs_found} subfolders, {total} images)",
+                text_color="#4ade80",
+            )
+            self.lbl_output.configure(
+                text=f"Auto: each folder/{AUTO_OUTPUT_NAME}/",
+                text_color="#4ade80",
+            )
 
     def _choose_output_folder(self):
         folder = filedialog.askdirectory(title="Select Output Folder")
