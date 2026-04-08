@@ -67,20 +67,28 @@ NeuralCensor handles the entire setup automatically via `start.bat`.
 2. Ensure you have sufficient disk space (~10 GB for PyTorch, SAM 3, and model checkpoints).
 3. **Double-click `start.bat`**.
 
+> **The only manual input required** is your **HuggingFace access token** — needed once to download the SAM 3 checkpoint. Everything else is fully automatic.
+>
+> **How to get it (free):**
+> 1. Create a free account at [huggingface.co](https://huggingface.co)
+> 2. Accept the model terms at [huggingface.co/facebook/sam3](https://huggingface.co/facebook/sam3)
+> 3. Create a token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) → "Create new token" (read access is sufficient)
+> 4. Paste it when `start.bat` asks — stored **only locally** on your machine, never sent anywhere else
+
 ### What `start.bat` does on first run:
 
 1. Creates an isolated Python virtual environment (`venv`)
 2. Installs PyTorch 2.10 with CUDA 12.8
 3. Installs all dependencies from `requirements.txt`
 4. Installs SAM 3 from the official GitHub repository
-5. Prompts for your HuggingFace token and downloads the SAM 3 checkpoint (~5 GB)
+5. **Asks once for your HuggingFace token** — then downloads the SAM 3 checkpoint (~5 GB)
 6. Checks Ollama and the vision model:
    - If Ollama is not installed → shows download link
    - If the model pull fails (e.g. Ollama too old) → **automatically downloads and installs the latest Ollama silently**, then retries
    - If the model is missing → **automatically pulls `gemma4:e4b`** (~7 GB)
 7. Launches the NeuralCensor GUI
 
-> **No manual action is required at any step.** Simply double-click `start.bat` and wait.
+> **Entering the HuggingFace token is the only manual step.** After that, simply wait for setup to finish.
 
 > On subsequent runs, `start.bat` skips installation and launches the GUI directly.
 
