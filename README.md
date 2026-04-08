@@ -33,7 +33,15 @@ Every step runs **100% locally** on your machine. No images are ever uploaded to
 
 ### Why SAM 3 instead of YOLO for the second pass?
 
-Re-running YOLO after Ollama verification would return the **exact same detections** as before. Instead, SAM 3 uses text prompts ("person", "car", "truck", etc.) to scan the **original unblurred image** for objects that YOLO missed. This happens twice: once automatically before Ollama as a safety net, and once more if Ollama flags remaining issues.
+### Why does SAM 3 scan the original image — won't it find already-blurred areas again?
+
+SAM 3 always scans the **original unblurred image** — intentionally: pixelated areas are harder for AI to detect reliably, so the original gives SAM 3 the best chance to find missed objects clearly.
+
+To prevent re-processing regions **already blurred**, an **IoU overlap filter** (threshold: 0.3) discards any mask that significantly overlaps with an already-covered area. Only genuinely new, uncovered regions are returned and then blurred. Each newly found mask is immediately added to the "covered" union, so subsequent text prompts also skip it.
+
+This safety pass runs twice:
+1. **Automatically before Ollama** — catches what YOLO missed, before the LLM review
+2. **After Ollama** — only if Ollama flags remaining unblurred objects
 
 ---
 
