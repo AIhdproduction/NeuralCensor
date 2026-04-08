@@ -41,7 +41,7 @@ SAM3_CONFIDENCE     = 0.15              # lowered for higher sensitivity
 SAM3_OVERLAP_IOU    = 0.3               # IoU threshold: new mask vs 1st-pass masks
 
 # Text prompts for SAM3 2nd pass (searched independently on the original image)
-SAM3_TEXT_PROMPTS   = ["person", "car", "truck", "bus", "motorcycle", "bicycle", "license plate"]
+SAM3_TEXT_PROMPTS   = ["person", "car", "truck", "bus", "motorcycle", "license plate"]
 
 OLLAMA_VERIFY_PROMPT = (
     "This image has been anonymized. Your job is to check if ANY person or vehicle was MISSED. "
@@ -709,10 +709,17 @@ class Processor:
         return True
 
     # -- Main processing loop -----------------------------------------------
-    def run(self, image_paths: list[Path], output_dir: Path, model: str):
+    def run(
+        self,
+        image_paths: list[Path],
+        output_dir: Path | None,
+        model: str,
+        output_dir_map: dict[Path, Path] | None = None,
+    ):
         self._stop_event.clear()
         total = len(image_paths)
-        self._log(f"Starting processing: {total} image(s) | Verification model: {model}")
+        mode = "subfolder mode" if output_dir_map else "single output folder"
+        self._log(f"Starting processing: {total} image(s) | {mode} | Verification model: {model}")
 
         # Load YOLO (detection)
         if not self._load_yolo():
@@ -739,8 +746,17 @@ class Processor:
                 self._log("Processing cancelled by user.")
                 break
 
+            # Resolve output dir: per-image map takes priority over global output_dir
+            img_output_dir = (
+                output_dir_map[img_path]
+                if output_dir_map and img_path in output_dir_map
+                else output_dir
+            )
+            # Ensure output dir exists (subfolder mode creates on demand)
+            img_output_dir.mkdir(parents=True, exist_ok=True)
+
             self._progress(idx / total, idx, total)
-            ok = self._process_image(img_path, output_dir, model)
+            ok = self._process_image(img_path, img_output_dir, model)
             if ok:
                 success_count += 1
 
@@ -778,6 +794,7 @@ class NeuralCensorApp(ctk.CTk):
         self._proc_thread: threading.Thread | None = None
         self._processor: Processor | None = None
         self._msg_queue: queue.Queue = queue.Queue()
+        self._output_dir_map: dict[Path, Path] | None = None  # subfolder mode: maps each image to its output dir
 
         self._build_ui()
         self._poll_queue()
@@ -850,6 +867,7 @@ class NeuralCensorApp(ctk.CTk):
 
         self._make_button(left, "📄  Select Image", self._choose_single_image)
         self._make_button(left, "📁  Select Folder", self._choose_input_folder)
+        self._make_button(left, "🗂  Select Root Folder (subfolders)", self._choose_root_folder)
 
         self.lbl_input = ctk.CTkLabel(left, text="No path selected",
                                       font=ctk.CTkFont(size=11), text_color="#a0a0b0",
@@ -1060,12 +1078,59 @@ class NeuralCensorApp(ctk.CTk):
             p = Path(folder)
             files = [f for f in p.iterdir()
                      if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS]
-            self._input_paths = sorted(files)
+            self._input_paths   = sorted(files)
+            self._output_dir_map = None  # reset subfolder mode
+            self._output_dir     = None  # reset manual output dir
             count = len(files)
             self.lbl_input.configure(
                 text=f"{p.name}/ ({count} images)",
                 text_color="#4ade80" if count > 0 else "#f87171",
             )
+            self.lbl_output.configure(text="Auto: NeuralCensor_Blurry/", text_color="#fbbf24")
+
+    def _choose_root_folder(self):
+        """Selects a root folder whose immediate subdirectories each contain images.
+        Each subfolder is processed separately; results go into subfolder/NeuralCensor_Blurry/.
+        """
+        folder = filedialog.askdirectory(title="Select Root Folder (with image subfolders)")
+        if not folder:
+            return
+        root = Path(folder)
+        # Find all immediate subdirectories that contain at least one image
+        output_dir_map: dict[Path, Path] = {}
+        all_files: list[Path] = []
+        subdirs_found = 0
+        for sub in sorted(root.iterdir()):
+            if not sub.is_dir():
+                continue
+            images = sorted(f for f in sub.iterdir()
+                            if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS)
+            if not images:
+                continue
+            subdirs_found += 1
+            out_dir = sub / AUTO_OUTPUT_NAME
+            for img in images:
+                output_dir_map[img] = out_dir
+            all_files.extend(images)
+
+        if not all_files:
+            self.lbl_input.configure(
+                text=f"{root.name}/ – no images found in subfolders",
+                text_color="#f87171",
+            )
+            return
+
+        self._input_paths    = all_files
+        self._output_dir_map = output_dir_map
+        self._output_dir     = None  # not used in subfolder mode
+        self.lbl_input.configure(
+            text=f"{root.name}/ ({subdirs_found} subfolders, {len(all_files)} images)",
+            text_color="#4ade80",
+        )
+        self.lbl_output.configure(
+            text=f"Auto: each subfolder/{AUTO_OUTPUT_NAME}/",
+            text_color="#4ade80",
+        )
 
     def _choose_output_folder(self):
         folder = filedialog.askdirectory(title="Select Output Folder")
@@ -1079,13 +1144,22 @@ class NeuralCensorApp(ctk.CTk):
             self._log("⚠ No input path selected.")
             return
 
-        if self._output_dir is None:
-            parent = self._input_paths[0].parent
-            self._output_dir = parent / AUTO_OUTPUT_NAME
-            self._log(f"📁 Auto output folder: {self._output_dir}")
-            self.lbl_output.configure(text=str(self._output_dir), text_color="#fbbf24")
+        # Subfolder mode: output dirs are determined per image
+        if self._output_dir_map:
+            # Create all output dirs upfront
+            for out_dir in set(self._output_dir_map.values()):
+                out_dir.mkdir(parents=True, exist_ok=True)
+            effective_output_dir = None
+        else:
+            # Normal mode: single output dir
+            if self._output_dir is None:
+                parent = self._input_paths[0].parent
+                self._output_dir = parent / AUTO_OUTPUT_NAME
+                self._log(f"📁 Auto output folder: {self._output_dir}")
+                self.lbl_output.configure(text=str(self._output_dir), text_color="#fbbf24")
+            self._output_dir.mkdir(parents=True, exist_ok=True)
+            effective_output_dir = self._output_dir
 
-        self._output_dir.mkdir(parents=True, exist_ok=True)
         self._clear_log()
         self.progress_bar.set(0)
         self.lbl_status.configure(text="Processing ...", text_color="#fbbf24")
@@ -1096,7 +1170,8 @@ class NeuralCensorApp(ctk.CTk):
         self._processor = Processor(self._msg_queue)
         self._proc_thread = threading.Thread(
             target=self._processor.run,
-            args=(self._input_paths, self._output_dir, self.model_var.get()),
+            args=(self._input_paths, effective_output_dir, self.model_var.get()),
+            kwargs={"output_dir_map": self._output_dir_map},
             daemon=True,
         )
         self._proc_thread.start()
