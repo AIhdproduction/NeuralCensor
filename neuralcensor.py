@@ -23,7 +23,7 @@ from PIL import Image
 # ──────────────────────────────────────────────────────────────
 # Constants
 # ──────────────────────────────────────────────────────────────
-SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp"}
+SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".jfif", ".png", ".bmp", ".tiff", ".tif", ".webp"}
 
 SAM3_CHECKPOINT_DIR = Path(__file__).parent / "checkpoints" / "sam3"
 
@@ -1072,90 +1072,110 @@ class NeuralCensorApp(ctk.CTk):
         if not folder:
             return
 
-        root = Path(folder)
+        try:
+            root = Path(folder)
 
-        # 1. Collect images directly in the selected folder
-        root_images = sorted(
-            f for f in root.iterdir()
-            if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
-        )
+            # 1. Collect images directly in the selected folder
+            root_images: list[Path] = []
+            for f in root.iterdir():
+                try:
+                    if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS:
+                        root_images.append(f)
+                except (OSError, PermissionError):
+                    continue
+            root_images.sort()
 
-        # 2. Collect images inside immediate subdirectories
-        output_dir_map: dict[Path, Path] = {}
-        sub_images: list[Path] = []
-        subdirs_found = 0
-        for sub in sorted(root.iterdir()):
-            if not sub.is_dir() or sub.name == AUTO_OUTPUT_NAME:
-                continue
-            images = sorted(
-                f for f in sub.iterdir()
-                if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
-            )
-            if not images:
-                continue
-            subdirs_found += 1
-            out_dir = sub / AUTO_OUTPUT_NAME
-            for img in images:
-                output_dir_map[img] = out_dir
-            sub_images.extend(images)
+            # 2. Collect images inside immediate subdirectories
+            output_dir_map: dict[Path, Path] = {}
+            sub_images: list[Path] = []
+            subdirs_found = 0
+            for sub in sorted(root.iterdir()):
+                try:
+                    if not sub.is_dir() or sub.name == AUTO_OUTPUT_NAME:
+                        continue
+                except (OSError, PermissionError):
+                    continue
+                images: list[Path] = []
+                try:
+                    for f in sub.iterdir():
+                        try:
+                            if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS:
+                                images.append(f)
+                        except (OSError, PermissionError):
+                            continue
+                except (OSError, PermissionError):
+                    continue
+                images.sort()
+                if not images:
+                    continue
+                subdirs_found += 1
+                out_dir = sub / AUTO_OUTPUT_NAME
+                for img in images:
+                    output_dir_map[img] = out_dir
+                sub_images.extend(images)
 
-        # 3. Determine mode based on what was found
-        has_root  = len(root_images) > 0
-        has_subs  = len(sub_images) > 0
+            # 3. Determine mode based on what was found
+            has_root = len(root_images) > 0
+            has_subs = len(sub_images) > 0
 
-        if not has_root and not has_subs:
+            if not has_root and not has_subs:
+                self.lbl_input.configure(
+                    text=f"{root.name}/ – no images found",
+                    text_color="#f87171",
+                )
+                return
+
+            # Reset state
+            self._output_dir     = None
+            self._output_dir_map = None
+            self._input_paths    = []
+
+            if has_root and not has_subs:
+                # ── Flat mode: images only in the root folder ──
+                self._input_paths = root_images
+                self.lbl_input.configure(
+                    text=f"{root.name}/ ({len(root_images)} images)",
+                    text_color="#4ade80",
+                )
+                self.lbl_output.configure(
+                    text=f"Auto: {root.name}/{AUTO_OUTPUT_NAME}/",
+                    text_color="#fbbf24",
+                )
+
+            elif has_subs and not has_root:
+                # ── Subfolder mode: images only in subdirectories ──
+                self._input_paths    = sub_images
+                self._output_dir_map = output_dir_map
+                self.lbl_input.configure(
+                    text=f"{root.name}/ ({subdirs_found} subfolders, {len(sub_images)} images)",
+                    text_color="#4ade80",
+                )
+                self.lbl_output.configure(
+                    text=f"Auto: each subfolder/{AUTO_OUTPUT_NAME}/",
+                    text_color="#4ade80",
+                )
+
+            else:
+                # ── Mixed mode: images in root AND in subfolders ──
+                root_out = root / AUTO_OUTPUT_NAME
+                for img in root_images:
+                    output_dir_map[img] = root_out
+                self._input_paths    = root_images + sub_images
+                self._output_dir_map = output_dir_map
+                total = len(root_images) + len(sub_images)
+                self.lbl_input.configure(
+                    text=f"{root.name}/ ({len(root_images)} root + {subdirs_found} subfolders, {total} images)",
+                    text_color="#4ade80",
+                )
+                self.lbl_output.configure(
+                    text=f"Auto: each folder/{AUTO_OUTPUT_NAME}/",
+                    text_color="#4ade80",
+                )
+
+        except Exception as exc:
             self.lbl_input.configure(
-                text=f"{root.name}/ – no images found",
+                text=f"Error scanning folder: {exc}",
                 text_color="#f87171",
-            )
-            return
-
-        # Reset state
-        self._output_dir     = None
-        self._output_dir_map = None
-        self._input_paths    = []
-
-        if has_root and not has_subs:
-            # ── Flat mode: images only in the root folder ──
-            self._input_paths = root_images
-            self.lbl_input.configure(
-                text=f"{root.name}/ ({len(root_images)} images)",
-                text_color="#4ade80",
-            )
-            self.lbl_output.configure(
-                text=f"Auto: {root.name}/{AUTO_OUTPUT_NAME}/",
-                text_color="#fbbf24",
-            )
-
-        elif has_subs and not has_root:
-            # ── Subfolder mode: images only in subdirectories ──
-            self._input_paths    = sub_images
-            self._output_dir_map = output_dir_map
-            self.lbl_input.configure(
-                text=f"{root.name}/ ({subdirs_found} subfolders, {len(sub_images)} images)",
-                text_color="#4ade80",
-            )
-            self.lbl_output.configure(
-                text=f"Auto: each subfolder/{AUTO_OUTPUT_NAME}/",
-                text_color="#4ade80",
-            )
-
-        else:
-            # ── Mixed mode: images in root AND in subfolders ──
-            # Root images get their own output dir too
-            root_out = root / AUTO_OUTPUT_NAME
-            for img in root_images:
-                output_dir_map[img] = root_out
-            self._input_paths    = root_images + sub_images
-            self._output_dir_map = output_dir_map
-            total = len(root_images) + len(sub_images)
-            self.lbl_input.configure(
-                text=f"{root.name}/ ({len(root_images)} root + {subdirs_found} subfolders, {total} images)",
-                text_color="#4ade80",
-            )
-            self.lbl_output.configure(
-                text=f"Auto: each folder/{AUTO_OUTPUT_NAME}/",
-                text_color="#4ade80",
             )
 
     def _choose_output_folder(self):
