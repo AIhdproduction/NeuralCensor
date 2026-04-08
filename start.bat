@@ -238,7 +238,7 @@ echo.
 :OLLAMA
 :: ─── Step 7: Check Ollama ─────────────────────────────────────────
 echo.
-echo  [Step 7/7] Checking Ollama ...
+echo  [Step 7/7] Checking Ollama + Model ...
 echo  ----------------------------------------------------------------
 curl -s --max-time 5 http://localhost:11434/api/tags >nul 2>nul
 if errorlevel 1 (
@@ -260,13 +260,110 @@ if not errorlevel 1 goto :MODEL_OK
 
 echo  [DOWNLOAD] Pulling gemma4:e4b ...
 ollama pull gemma4:e4b
+if not errorlevel 1 (
+    echo  [OK] gemma4:e4b ready.
+    goto :LAUNCH
+)
+
+:: ── Pull failed → try automatic Ollama update ──────────────────────
+echo.
+echo  [WARNING] Pull failed. Attempting automatic Ollama update ...
+echo  ----------------------------------------------------------------
+echo.
+echo  [DOWNLOAD] Downloading latest Ollama installer ...
+echo             (from https://ollama.com/download/OllamaSetup.exe)
+echo.
+curl -L --progress-bar -o "%TEMP%\OllamaSetup.exe" "https://ollama.com/download/OllamaSetup.exe"
 if errorlevel 1 (
-    echo  [ERROR] Could not pull gemma4:e4b.
+    echo.
+    echo  [ERROR] Could not download Ollama installer.
+    echo          Please update manually: https://ollama.com/download
+    echo.
     echo  Type "exit" to close this window.
     goto :EOF
 )
-echo  [OK] gemma4:e4b ready.
-goto :LAUNCH
+
+echo.
+echo  [INFO] Installing Ollama update silently ...
+echo         Please wait, this may take 30-60 seconds ...
+echo.
+"%TEMP%\OllamaSetup.exe" /SILENT /NORESTART
+if errorlevel 1 (
+    echo  [WARNING] Silent install may have failed. Trying /S flag ...
+    "%TEMP%\OllamaSetup.exe" /S
+)
+
+echo.
+echo  [INFO] Waiting for Ollama to restart ...
+ping -n 10 127.0.0.1 >nul 2>nul
+
+:: Wait until Ollama API responds again (up to ~30s) - goto workaround for for-loop
+set OLLAMA_READY=0
+set WAIT_COUNT=0
+:WAIT_LOOP
+if !WAIT_COUNT! GEQ 10 goto :CHECK_READY
+curl -s --max-time 3 http://localhost:11434/api/tags >nul 2>nul
+if not errorlevel 1 (
+    set OLLAMA_READY=1
+    goto :CHECK_READY
+)
+ping -n 4 127.0.0.1 >nul 2>nul
+set /a WAIT_COUNT+=1
+goto :WAIT_LOOP
+
+:CHECK_READY
+if !OLLAMA_READY!==0 (
+    echo.
+    echo  [WARNING] Ollama did not restart automatically.
+    echo           Please start Ollama manually, then run start.bat again.
+    echo.
+    echo  Type "exit" to close this window.
+    goto :EOF
+)
+
+echo  [OK] Ollama is running again after update.
+echo.
+echo  [DOWNLOAD] Retrying: pulling gemma4:e4b ...
+ollama pull gemma4:e4b
+if errorlevel 1 (
+    echo.
+    echo  [ERROR] Could not pull gemma4:e4b even after Ollama update.
+    echo.
+    echo  ================================================================
+    echo   MANUAL STEPS:
+    echo  ================================================================
+    echo.
+    echo   1. Open a new terminal (cmd or PowerShell) and run:
+    echo.
+    echo        ollama pull gemma4:e4b
+    echo.
+    echo   2. Run start.bat again after the download is complete.
+    echo.
+    echo  ================================================================
+    echo   Alternative models you can try:
+    echo  ================================================================
+    echo.
+    echo     ollama pull gemma3:4b
+    echo     ollama pull llama3.2:3b
+    echo     ollama pull phi4-mini
+    echo.
+    echo  ================================================================
+    echo.
+    echo  Type "exit" to close this window.
+    goto :EOF
+)
+
+echo.
+echo  [OK] gemma4:e4b successfully downloaded!
+echo.
+echo  ================================================================
+echo   Ollama was updated and the model is ready.
+echo   Please close this window and run start.bat again
+echo   to launch NeuralCensor.
+echo  ================================================================
+echo.
+echo  Type "exit" to close this window.
+goto :EOF
 
 :MODEL_OK
 echo  [OK] gemma4:e4b is available.
