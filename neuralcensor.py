@@ -860,14 +860,12 @@ class NeuralCensorApp(ctk.CTk):
 
         self._build_separator(left)
 
-        # Input
+        # Input – unified single browse button
         ctk.CTkLabel(left, text="INPUT",
                      font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
                      text_color="#a0a0b0").pack(anchor="w", padx=16, pady=(14, 4))
 
-        self._make_button(left, "📄  Select Image", self._choose_single_image)
-        self._make_button(left, "📁  Select Folder", self._choose_input_folder)
-        self._make_button(left, "🗂  Select Root Folder (subfolders)", self._choose_root_folder)
+        self._make_button(left, "📂  Browse Input ...", self._open_input_picker)
 
         self.lbl_input = ctk.CTkLabel(left, text="No path selected",
                                       font=ctk.CTkFont(size=11), text_color="#a0a0b0",
@@ -1062,15 +1060,73 @@ class NeuralCensorApp(ctk.CTk):
         self.log_box.configure(state="disabled")
 
     # ── File/folder selection ───────────────────────────────
+    def _open_input_picker(self):
+        """Opens a small modal dialog to choose the input type."""
+        picker = ctk.CTkToplevel(self)
+        picker.title("Select Input")
+        picker.geometry("300x230")
+        picker.configure(fg_color="#0d0d1a")
+        picker.resizable(False, False)
+        picker.transient(self)
+        picker.grab_set()
+
+        # Center on parent
+        picker.update_idletasks()
+        x = self.winfo_x() + (self.winfo_width()  - 300) // 2
+        y = self.winfo_y() + (self.winfo_height() - 230) // 2
+        picker.geometry(f"+{x}+{y}")
+
+        ctk.CTkLabel(
+            picker, text="What would you like to process?",
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            text_color="#eaeaea",
+        ).pack(padx=20, pady=(18, 12))
+
+        def pick(fn):
+            picker.destroy()
+            fn()
+
+        ctk.CTkButton(
+            picker, text="🖼️  Image(s)",
+            font=ctk.CTkFont(family="Segoe UI", size=13),
+            fg_color="#0f3460", hover_color="#1a4a7a",
+            corner_radius=8, height=38, anchor="w",
+            command=lambda: pick(self._choose_single_image),
+        ).pack(fill="x", padx=20, pady=(0, 6))
+
+        ctk.CTkButton(
+            picker, text="📁  Folder (flat)",
+            font=ctk.CTkFont(family="Segoe UI", size=13),
+            fg_color="#0f3460", hover_color="#1a4a7a",
+            corner_radius=8, height=38, anchor="w",
+            command=lambda: pick(self._choose_input_folder),
+        ).pack(fill="x", padx=20, pady=(0, 6))
+
+        ctk.CTkButton(
+            picker, text="🗂️  Root Folder (with subfolders)",
+            font=ctk.CTkFont(family="Segoe UI", size=13),
+            fg_color="#0f3460", hover_color="#1a4a7a",
+            corner_radius=8, height=38, anchor="w",
+            command=lambda: pick(self._choose_root_folder),
+        ).pack(fill="x", padx=20, pady=(0, 6))
+
     def _choose_single_image(self):
-        path = filedialog.askopenfilename(
-            title="Select Image",
+        """Allows selecting one or more individual image files."""
+        paths = filedialog.askopenfilenames(
+            title="Select Image(s)",
             filetypes=[("Image files", "*.jpg *.jpeg *.png *.bmp *.tiff *.tif *.webp"),
                        ("All files", "*.*")],
         )
-        if path:
-            self._input_paths = [Path(path)]
-            self.lbl_input.configure(text=Path(path).name, text_color="#4ade80")
+        if paths:
+            self._input_paths    = [Path(p) for p in paths]
+            self._output_dir_map = None
+            self._output_dir     = None
+            count = len(self._input_paths)
+            if count == 1:
+                self.lbl_input.configure(text=self._input_paths[0].name, text_color="#4ade80")
+            else:
+                self.lbl_input.configure(text=f"{count} images selected", text_color="#4ade80")
+            self.lbl_output.configure(text="Auto: NeuralCensor_Blurry/", text_color="#fbbf24")
 
     def _choose_input_folder(self):
         folder = filedialog.askdirectory(title="Select Input Folder")
