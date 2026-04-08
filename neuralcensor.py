@@ -35,9 +35,9 @@ OLLAMA_MAX_SIZE     = 1536   # Maximum edge length for Ollama input
 AUTO_OUTPUT_NAME    = "NeuralCensor_Blurry"
 
 YOLO_CLASSES        = [0, 2, 3, 5, 7]   # person, bicycle, car, bus, truck
-YOLO_CONF           = 0.25
+YOLO_CONF           = 0.15              # lowered for higher sensitivity
 SAM3_MIN_MASK_PX    = 100               # min mask pixels before falling back to bbox
-SAM3_CONFIDENCE     = 0.35
+SAM3_CONFIDENCE     = 0.15              # lowered for higher sensitivity
 SAM3_OVERLAP_IOU    = 0.3               # IoU threshold: new mask vs 1st-pass masks
 
 # Text prompts for SAM3 2nd pass (searched independently on the original image)
@@ -610,7 +610,7 @@ class Processor:
         # Keep the original for potential 2nd pass (SAM3 text search)
         cv_original = cv_image.copy()
 
-        # -- Step 1: Detect & refine masks (YOLO -> SAM3) --
+        # -- Step 1: Detect & refine masks (YOLO -> SAM3 box refinement) --
         masks = self._generate_masks_hybrid(cv_image)
 
         if not self.sam3_loaded:
@@ -618,52 +618,84 @@ class Processor:
             return False
 
         if not masks:
-            self._log("  No objects found - image unchanged.")
-            cv2.imwrite(str(output_dir / image_path.name), cv_image)
-            return True
+            self._log("  No objects found by YOLO – running SAM3 text-search on original ...")
+            # Even if YOLO found nothing, try SAM3 text-search as a safety net
+            t_sam_only = time.perf_counter()
+            masks = self._sam3_text_search(cv_original, [])
+            dt_sam_only = time.perf_counter() - t_sam_only
+            if not masks:
+                self._log("  SAM3 text-search also found nothing – image unchanged.")
+                cv2.imwrite(str(output_dir / image_path.name), cv_image)
+                return True
+            self._log(f"  SAM3 text-search found {len(masks)} object(s) in {dt_sam_only:.2f}s (YOLO had missed them)")
 
-        # -- Step 2: Apply pixelation --
+        # -- Step 2: Apply pixelation (1st pass masks) --
         t_blur = time.perf_counter()
         self._log(f"  -> Pixelating {len(masks)} mask(s), {BLUR_PASSES}x blur ...")
         result = cv_image.copy()
         for mask in masks:
             result = blur_region(result, mask)
         dt_blur = time.perf_counter() - t_blur
-        self._log(f"  Pixelation: {dt_blur:.2f}s")
+        self._log(f"  Pixelation (pass 1): {dt_blur:.2f}s")
 
-        # -- Step 3: Save intermediate result --
+        # -- Step 3: SAM3 text-search safety pass (on ORIGINAL image) --
+        # This runs BEFORE Ollama as an extra safety net:
+        # SAM3 text prompts search the original for anything YOLO may have missed.
+        # Only genuinely new regions (not yet covered by pass-1 masks) are added.
+        self._log("  -> SAM3 text-search safety pass (BEFORE Ollama) ...")
+        t_sam2 = time.perf_counter()
+        safety_masks = self._sam3_text_search(cv_original, masks)
+        dt_sam2 = time.perf_counter() - t_sam2
+        all_masks = masks  # keep reference to all masks used so far
+        if safety_masks:
+            self._log(f"  SAM3 safety pass: {len(safety_masks)} new object(s) found in {dt_sam2:.2f}s – applying pixelation ...")
+            for mask in safety_masks:
+                result = blur_region(result, mask)
+            all_masks = masks + safety_masks
+        else:
+            self._log(f"  SAM3 safety pass: nothing new found ({dt_sam2:.2f}s)")
+
+        # -- Step 4: Save intermediate result --
         out_path = output_dir / image_path.name
         cv2.imwrite(str(out_path), result)
 
-        # -- Step 4: Ollama verification (yes/no only) --
+        # -- Step 5: Ollama verification (yes/no only) --
         t_ollama = time.perf_counter()
         self._log("  -> Ollama verification (yes/no) ...")
         still_visible = self._verify_with_ollama(result, model)
         dt_ollama = time.perf_counter() - t_ollama
         self._log(f"  Ollama: {dt_ollama:.2f}s")
 
-        report_status = "1 pass"
+        safety_info = f" + SAM3 safety:{len(safety_masks)}" if safety_masks else ""
+        report_status = f"1 pass (YOLO:{len(masks)}{safety_info})"
+
         if still_visible:
-            self._log("  [WARN] Ollama found missed objects – SAM3 text-prompt search on original ...")
+            self._log("  [WARN] Ollama found missed objects – SAM3 text-prompt 3rd pass on original ...")
             # SAM3 searches the ORIGINAL image with text prompts
-            # to find objects that YOLO missed.  The 1st-pass masks
-            # are used as an overlap filter so nothing is doubled.
+            # to find objects that both YOLO and the safety pass missed.
+            # all_masks (pass1 + safety) are used as overlap filter.
             t_refine = time.perf_counter()
-            new_masks = self._sam3_text_search(cv_original, masks)
+            new_masks = self._sam3_text_search(cv_original, all_masks)
             if new_masks:
                 for mask in new_masks:
                     result = blur_region(result, mask)
                 dt_refine = time.perf_counter() - t_refine
-                report_status = f"2 passes – SAM3 text-search found {len(new_masks)} new object(s) in {dt_refine:.1f}s"
-                self._log(f"  2nd pass complete: {len(new_masks)} new mask(s) ({dt_refine:.2f}s).")
+                report_status = (
+                    f"3 passes (YOLO:{len(masks)}{safety_info} + Ollama-triggered:{len(new_masks)}) "
+                    f"in {dt_refine:.1f}s"
+                )
+                self._log(f"  3rd pass complete: {len(new_masks)} new mask(s) ({dt_refine:.2f}s).")
             else:
                 dt_refine = time.perf_counter() - t_refine
-                report_status = "2 passes – SAM3 text-search found 0 new objects (Ollama false positive)"
-                self._log(f"  2nd pass: SAM3 found nothing new – Ollama was a false positive ({dt_refine:.2f}s).")
+                report_status = (
+                    f"2 passes (YOLO:{len(masks)}{safety_info}) – "
+                    f"Ollama triggered 3rd pass but SAM3 found 0 new objects (false positive, {dt_refine:.2f}s)"
+                )
+                self._log(f"  3rd pass: SAM3 found nothing new – Ollama was a false positive ({dt_refine:.2f}s).")
         else:
-            self._log("  [OK] Verification passed.")
+            self._log("  [OK] Ollama verification passed.")
 
-        # -- Step 5: Save final image --
+        # -- Step 6: Save final image --
         cv2.imwrite(str(out_path), result)
         dt_total = time.perf_counter() - t_total
         self._log(f"  [SAVED] {out_path.name}")
@@ -699,7 +731,7 @@ class Processor:
         if not self._warmup_ollama(model):
             self._log("[WARN] Ollama warmup failed - verification may be slow on first image.")
 
-        self._log("Pipeline: YOLO detection -> SAM3 mask refinement -> pixelation -> Ollama verification")
+        self._log("Pipeline: YOLO detection -> SAM3 mask refinement -> pixelation -> SAM3 text-search (safety) -> Ollama verification")
 
         success_count = 0
         for idx, img_path in enumerate(image_paths):
