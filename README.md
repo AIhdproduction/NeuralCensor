@@ -39,11 +39,13 @@ Re-running YOLO after Ollama verification would return the **exact same detectio
 
 | Requirement | Details |
 |---|---|
-| **NVIDIA GPU** | Required for CUDA acceleration (SAM 3 + YOLO) |
+| **NVIDIA GPU** | Required — minimum **12 GB VRAM** (SAM 3 ~5 GB + Ollama vision model ~7 GB) |
 | **Python 3.12+** | Recommended for SAM 3 compatibility |
 | **Ollama** | Must be installed and running. Pull a vision model, e.g. `ollama pull gemma4:e4b` |
 | **Git** | Required for SAM 3 installation from GitHub |
 | **HuggingFace Account** | Required for downloading the SAM 3 checkpoint (free, gated access) |
+
+> **⚠️ GPU Requirement:** NeuralCensor loads SAM 3 (~5 GB VRAM) and an Ollama vision model (e.g. `gemma4:e4b` ~7 GB VRAM) simultaneously. A GPU with **at least 12 GB VRAM** is required. GPUs with less VRAM will cause out-of-memory errors or fall back to CPU, which is extremely slow. Tested with NVIDIA RTX 3080 (10 GB) and above.
 
 ---
 
@@ -101,8 +103,8 @@ Key constants can be adjusted at the top of `neuralcensor.py`:
 
 | Constant | Default | Description |
 |---|---|---|
-| `YOLO_CONF` | 0.25 | YOLO confidence threshold (lower = more detections) |
-| `SAM3_CONFIDENCE` | 0.35 | SAM 3 mask confidence threshold |
+| `YOLO_CONF` | 0.15 | YOLO confidence threshold (lower = more detections) |
+| `SAM3_CONFIDENCE` | 0.15 | SAM 3 mask confidence threshold |
 | `BLUR_KERNEL_BASE` | 101 | Gaussian blur kernel size (must be odd) |
 | `BLUR_PASSES` | 3 | Number of blur passes per mask |
 | `QUANTIZE_STEP` | 8 | Pixel quantization step (anti-reconstruction) |
