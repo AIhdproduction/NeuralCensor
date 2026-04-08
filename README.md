@@ -18,8 +18,9 @@ Every step runs **100% locally** on your machine. No images are ever uploaded to
 - **Multi-Pass Gaussian Blur** — 3× Gaussian blur + pixel quantization makes reconstruction practically impossible.
 - **Strict LLM Verification** — After initial anonymization, a local Vision LLM (e.g. Gemma 4) reviews the result. It is instructed to be *paranoid*: even a single visible head, arm, or silhouette counts as a missed person.
 - **SAM 3 Second Pass** — If the LLM finds missed objects, their bounding boxes are fed back into **SAM 3** (not YOLO — which would return the same results). SAM 3 generates precise masks for the missed objects, which are then blurred. This provides a true correction layer.
-- **Batch Processing** — Process single images or entire folders via a modern dark-themed GUI.
-- **Automated Setup** — `start.bat` installs everything on first run: Python venv, PyTorch + CUDA, YOLO, SAM 3, and the model checkpoint.
+- **Batch Processing** — Process single images, flat folders, or nested folder structures via a modern dark-themed GUI.
+- **Fully Automated Setup** — `start.bat` installs everything on first run: Python venv, PyTorch + CUDA, YOLO, SAM 3, and the SAM 3 checkpoint. **No manual steps required.**
+- **Automatic Ollama Management** — `start.bat` checks whether Ollama is installed and whether the required vision model is already downloaded. If the model pull fails due to an outdated Ollama version, it **automatically downloads and installs the latest Ollama**, then retries the model download — all without any user interaction.
 
 ---
 
@@ -63,9 +64,14 @@ NeuralCensor handles the entire setup automatically via `start.bat`.
 2. Installs PyTorch 2.10 with CUDA 12.8
 3. Installs all dependencies from `requirements.txt`
 4. Installs SAM 3 from the official GitHub repository
-5. Prompts for your HuggingFace token and downloads the SAM 3 checkpoint
-6. Verifies that Ollama is running and pulls `gemma4:e4b` if needed
+5. Prompts for your HuggingFace token and downloads the SAM 3 checkpoint (~5 GB)
+6. Checks Ollama and the vision model:
+   - If Ollama is not installed → shows download link
+   - If the model pull fails (e.g. Ollama too old) → **automatically downloads and installs the latest Ollama silently**, then retries
+   - If the model is missing → **automatically pulls `gemma4:e4b`** (~7 GB)
 7. Launches the NeuralCensor GUI
+
+> **No manual action is required at any step.** Simply double-click `start.bat` and wait.
 
 > On subsequent runs, `start.bat` skips installation and launches the GUI directly.
 
