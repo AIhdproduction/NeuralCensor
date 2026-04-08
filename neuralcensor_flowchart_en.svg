@@ -1,161 +1,140 @@
-<svg width="100%" viewBox="0 0 680 1080" xmlns="http://www.w3.org/2000/svg">
+<svg width="100%" viewBox="0 0 680 1230" xmlns="http://www.w3.org/2000/svg">
 <defs>
   <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
     <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
   </marker>
-<mask id="imagine-text-gaps-68y7q6" maskUnits="userSpaceOnUse"><rect x="0" y="0" width="680" height="1080" fill="white"/><rect x="278.72760009765625" y="31.027667999267578" width="122.27339172363281" height="21.94466209411621" fill="black" rx="2"/><rect x="294.1561584472656" y="105.02767181396484" width="92.92271423339844" height="21.94466781616211" fill="black" rx="2"/><rect x="249.88482666015625" y="126.44435119628906" width="180.34291076660156" height="19.11129379272461" fill="black" rx="2"/><rect x="264.2803649902344" y="195.0276641845703" width="151.1078338623047" height="21.94466209411621" fill="black" rx="2"/><rect x="274.6398620605469" y="216.4443359375" width="130.61067962646484" height="19.11129379272461" fill="black" rx="2"/><rect x="286.2168273925781" y="289.0276794433594" width="107.87831115722656" height="21.94466209411621" fill="black" rx="2"/><rect x="259.03424072265625" y="363.0276794433594" width="161.00991821289062" height="21.94466209411621" fill="black" rx="2"/><rect x="240.77230834960938" y="384.4443359375" width="199.84024047851562" height="19.11129379272461" fill="black" rx="2"/><rect x="273.5035705566406" y="457.02764892578125" width="133.77245330810547" height="21.94466209411621" fill="black" rx="2"/><rect x="517.7802734375" y="445.7220458984375" width="25.9398193359375" height="19.11129379272461" fill="black" rx="2"/><rect x="520.7788696289062" y="457.02764892578125" width="117.49784851074219" height="21.94466209411621" fill="black" rx="2"/><rect x="347.0555114746094" y="495.7220764160156" width="30.275876998901367" height="19.11129379272461" fill="black" rx="2"/><rect x="232.8551025390625" y="531.0277099609375" width="213.96759033203125" height="21.94466209411621" fill="black" rx="2"/><rect x="243.8270263671875" y="552.4443359375" width="194.0018310546875" height="19.11129379272461" fill="black" rx="2"/><rect x="241.2519073486328" y="621.0277099609375" width="196.57579040527344" height="21.94466209411621" fill="black" rx="2"/><rect x="245.0592498779297" y="642.4443359375" width="189.32391357421875" height="19.11129379272461" fill="black" rx="2"/><rect x="247.64173889160156" y="711.0276489257812" width="183.78973388671875" height="21.94466209411621" fill="black" rx="2"/><rect x="254.52593994140625" y="732.4443359375" width="171.3920135498047" height="19.11129379272461" fill="black" rx="2"/><rect x="260.5394592285156" y="805.0276489257812" width="159.694580078125" height="21.94466209411621" fill="black" rx="2"/><rect x="490.7802734375" y="793.7220458984375" width="25.9398193359375" height="19.11129379272461" fill="black" rx="2"/><rect x="548.063720703125" y="805.0276489257812" width="89.54981994628906" height="21.94466209411621" fill="black" rx="2"/><rect x="347.0555114746094" y="843.7220458984375" width="30.275876998901367" height="19.11129379272461" fill="black" rx="2"/><rect x="224.5394744873047" y="879.0276489257812" width="230.000244140625" height="21.94466209411621" fill="black" rx="2"/><rect x="239.28182983398438" y="900.4443359375" width="202.82093811035156" height="19.11129379272461" fill="black" rx="2"/><rect x="248.12872314453125" y="969.0276489257812" width="184.04901123046875" height="21.94466209411621" fill="black" rx="2"/><rect x="283.58270263671875" y="990.4442749023438" width="113.53308868408203" height="19.11129379272461" fill="black" rx="2"/><rect x="318.34307861328125" y="1044.027587890625" width="43.62594223022461" height="21.94466209411621" fill="black" rx="2"/><rect x="616" y="925.7220458984375" width="36.17457580566406" height="19.11129379272461" fill="black" rx="2"/><rect x="616" y="938.7221069335938" width="42.24355697631836" height="19.11129379272461" fill="black" rx="2"/></mask></defs>
+</defs>
+
+<!-- Common styles -->
+<style>
+  text { font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif; }
+  .title { font-size:14px; font-weight:500; }
+  .sub   { font-size:12px; font-weight:400; }
+  .label { font-size:12px; font-weight:400; fill:rgb(61,61,58); }
+  line   { stroke:rgb(115,114,108); stroke-width:1.5; fill:none; }
+</style>
 
 <!-- START -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="240" y="20" width="200" height="44" rx="22" stroke-width="0.5" style="fill:rgb(241, 239, 232);stroke:rgb(95, 94, 90);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="340" y="42" text-anchor="middle" dominant-baseline="central" style="fill:rgb(68, 68, 65);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Start: launch app</text>
-</g>
+<rect x="240" y="20" width="200" height="44" rx="22" fill="rgb(241,239,232)" stroke="rgb(95,94,90)" stroke-width="0.5"/>
+<text x="340" y="42" text-anchor="middle" dominant-baseline="central" class="title" fill="rgb(68,68,65)">Start: launch app</text>
 
-<!-- Arrow -->
-<line x1="340" y1="64" x2="340" y2="98" marker-end="url(#arrow)" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<line x1="340" y1="64" x2="340" y2="98" marker-end="url(#arrow)"/>
 
 <!-- Load models -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="190" y="98" width="300" height="56" rx="8" stroke-width="0.5" style="fill:rgb(238, 237, 254);stroke:rgb(83, 74, 183);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="340" y="116" text-anchor="middle" dominant-baseline="central" style="fill:rgb(60, 52, 137);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Load models</text>
-  <text x="340" y="136" text-anchor="middle" dominant-baseline="central" style="fill:rgb(83, 74, 183);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">YOLO · SAM3 · Ollama warmup</text>
-</g>
+<rect x="190" y="98" width="300" height="56" rx="8" fill="rgb(238,237,254)" stroke="rgb(83,74,183)" stroke-width="0.5"/>
+<text x="340" y="116" text-anchor="middle" dominant-baseline="central" class="title" fill="rgb(60,52,137)">Load models</text>
+<text x="340" y="136" text-anchor="middle" dominant-baseline="central" class="sub" fill="rgb(83,74,183)">YOLO · SAM 3 · Ollama warmup</text>
 
-<!-- Arrow -->
-<line x1="340" y1="154" x2="340" y2="188" marker-end="url(#arrow)" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<line x1="340" y1="154" x2="340" y2="188" marker-end="url(#arrow)"/>
 
 <!-- Select input -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="190" y="188" width="300" height="56" rx="8" stroke-width="0.5" style="fill:rgb(241, 239, 232);stroke:rgb(95, 94, 90);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="340" y="206" text-anchor="middle" dominant-baseline="central" style="fill:rgb(68, 68, 65);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Select input &amp; output</text>
-  <text x="340" y="226" text-anchor="middle" dominant-baseline="central" style="fill:rgb(95, 94, 90);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">Single image or folder</text>
-</g>
+<rect x="190" y="188" width="300" height="56" rx="8" fill="rgb(241,239,232)" stroke="rgb(95,94,90)" stroke-width="0.5"/>
+<text x="340" y="206" text-anchor="middle" dominant-baseline="central" class="title" fill="rgb(68,68,65)">Select input &amp; output</text>
+<text x="340" y="226" text-anchor="middle" dominant-baseline="central" class="sub" fill="rgb(95,94,90)">Image, flat folder, or root folder (auto-detect)</text>
 
-<!-- Arrow -->
-<line x1="340" y1="244" x2="340" y2="278" marker-end="url(#arrow)" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<line x1="340" y1="244" x2="340" y2="278" marker-end="url(#arrow)"/>
 
 <!-- For each image -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="190" y="278" width="300" height="44" rx="8" stroke-width="0.5" style="fill:rgb(230, 241, 251);stroke:rgb(24, 95, 165);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="340" y="300" text-anchor="middle" dominant-baseline="central" style="fill:rgb(12, 68, 124);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">For each image</text>
-</g>
+<rect x="190" y="278" width="300" height="44" rx="8" fill="rgb(230,241,251)" stroke="rgb(24,95,165)" stroke-width="0.5"/>
+<text x="340" y="300" text-anchor="middle" dominant-baseline="central" class="title" fill="rgb(12,68,124)">For each image</text>
 
-<!-- Arrow -->
-<line x1="340" y1="322" x2="340" y2="356" marker-end="url(#arrow)" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<line x1="340" y1="322" x2="340" y2="356" marker-end="url(#arrow)"/>
 
-<!-- STEP 1: YOLO Detection -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="170" y="356" width="340" height="56" rx="8" stroke-width="0.5" style="fill:rgb(225, 245, 238);stroke:rgb(15, 110, 86);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="340" y="374" text-anchor="middle" dominant-baseline="central" style="fill:rgb(8, 80, 65);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Step 1: YOLO detection</text>
-  <text x="340" y="394" text-anchor="middle" dominant-baseline="central" style="fill:rgb(15, 110, 86);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">Persons, cars, trucks, buses, bikes</text>
-</g>
+<!-- STEP 1: YOLO -->
+<rect x="170" y="356" width="340" height="56" rx="8" fill="rgb(225,245,238)" stroke="rgb(15,110,86)" stroke-width="0.5"/>
+<text x="340" y="374" text-anchor="middle" dominant-baseline="central" class="title" fill="rgb(8,80,65)">Step 1: YOLO detection (conf ≥ 0.15)</text>
+<text x="340" y="394" text-anchor="middle" dominant-baseline="central" class="sub" fill="rgb(15,110,86)">Persons, cars, trucks, buses, bikes</text>
 
-<!-- Arrow -->
-<line x1="340" y1="412" x2="340" y2="446" marker-end="url(#arrow)" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<line x1="340" y1="412" x2="340" y2="446" marker-end="url(#arrow)"/>
 
 <!-- Decision: Objects found? -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="210" y="446" width="260" height="44" rx="8" stroke-width="0.5" style="fill:rgb(250, 238, 218);stroke:rgb(133, 79, 11);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="340" y="468" text-anchor="middle" dominant-baseline="central" style="fill:rgb(99, 56, 6);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Objects detected?</text>
-</g>
+<rect x="210" y="446" width="260" height="44" rx="8" fill="rgb(250,238,218)" stroke="rgb(133,79,11)" stroke-width="0.5"/>
+<text x="340" y="468" text-anchor="middle" dominant-baseline="central" class="title" fill="rgb(99,56,6)">Objects detected?</text>
 
-<!-- No branch: arrow right -->
-<line x1="470" y1="468" x2="590" y2="468" marker-end="url(#arrow)" stroke="#888780" mask="url(#imagine-text-gaps-68y7q6)" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-<text x="530" y="460" text-anchor="middle" style="fill:rgb(61, 61, 58);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:auto">No</text>
-<!-- Save unchanged -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="510" y="446" width="140" height="44" rx="8" stroke-width="0.5" style="fill:rgb(241, 239, 232);stroke:rgb(95, 94, 90);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="580" y="468" text-anchor="middle" dominant-baseline="central" style="fill:rgb(68, 68, 65);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Save unchanged</text>
-</g>
+<!-- No → right: SAM3 text-search fallback -->
+<line x1="470" y1="468" x2="590" y2="468" marker-end="url(#arrow)" stroke="rgb(115,114,108)"/>
+<text x="530" y="460" text-anchor="middle" class="label">No</text>
+<rect x="510" y="446" width="150" height="44" rx="8" fill="rgb(250,236,231)" stroke="rgb(153,60,29)" stroke-width="0.5"/>
+<text x="585" y="468" text-anchor="middle" dominant-baseline="central" class="title" fill="rgb(113,43,19)">SAM3 text-search</text>
 
-<!-- Yes arrow down -->
-<line x1="340" y1="490" x2="340" y2="524" marker-end="url(#arrow)" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-<text x="352" y="510" style="fill:rgb(61, 61, 58);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:auto">Yes</text>
+<!-- Yes ↓ -->
+<line x1="340" y1="490" x2="340" y2="524" marker-end="url(#arrow)"/>
+<text x="352" y="510" class="label">Yes</text>
 
 <!-- STEP 2: SAM3 mask refinement -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="170" y="524" width="340" height="56" rx="8" stroke-width="0.5" style="fill:rgb(225, 245, 238);stroke:rgb(15, 110, 86);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="340" y="542" text-anchor="middle" dominant-baseline="central" style="fill:rgb(8, 80, 65);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Step 2: SAM3 mask refinement</text>
-  <text x="340" y="562" text-anchor="middle" dominant-baseline="central" style="fill:rgb(15, 110, 86);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">Precise pixel mask per YOLO box</text>
-</g>
+<rect x="170" y="524" width="340" height="56" rx="8" fill="rgb(225,245,238)" stroke="rgb(15,110,86)" stroke-width="0.5"/>
+<text x="340" y="542" text-anchor="middle" dominant-baseline="central" class="title" fill="rgb(8,80,65)">Step 2: SAM 3 mask refinement</text>
+<text x="340" y="562" text-anchor="middle" dominant-baseline="central" class="sub" fill="rgb(15,110,86)">Precise pixel mask per YOLO box (conf ≥ 0.15)</text>
 
-<!-- Arrow -->
-<line x1="340" y1="580" x2="340" y2="614" marker-end="url(#arrow)" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<line x1="340" y1="580" x2="340" y2="614" marker-end="url(#arrow)"/>
 
 <!-- STEP 3: Pixelation -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="170" y="614" width="340" height="56" rx="8" stroke-width="0.5" style="fill:rgb(225, 245, 238);stroke:rgb(15, 110, 86);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="340" y="632" text-anchor="middle" dominant-baseline="central" style="fill:rgb(8, 80, 65);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Step 3: Multi-pass pixelation</text>
-  <text x="340" y="652" text-anchor="middle" dominant-baseline="central" style="fill:rgb(15, 110, 86);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">Gaussian blur × 3 + quantization</text>
-</g>
+<rect x="170" y="614" width="340" height="56" rx="8" fill="rgb(225,245,238)" stroke="rgb(15,110,86)" stroke-width="0.5"/>
+<text x="340" y="632" text-anchor="middle" dominant-baseline="central" class="title" fill="rgb(8,80,65)">Step 3: Multi-pass pixelation</text>
+<text x="340" y="652" text-anchor="middle" dominant-baseline="central" class="sub" fill="rgb(15,110,86)">Gaussian blur × 3 + quantization</text>
 
-<!-- Arrow -->
-<line x1="340" y1="670" x2="340" y2="704" marker-end="url(#arrow)" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<line x1="340" y1="670" x2="340" y2="704" marker-end="url(#arrow)"/>
+
+<!-- STEP 3b: SAM3 Safety Pass (NEW) -->
+<rect x="170" y="704" width="340" height="56" rx="8" fill="rgb(250,236,231)" stroke="rgb(153,60,29)" stroke-width="0.5"/>
+<text x="340" y="722" text-anchor="middle" dominant-baseline="central" class="title" fill="rgb(113,43,19)">Step 3b: SAM 3 text-search safety pass ★</text>
+<text x="340" y="742" text-anchor="middle" dominant-baseline="central" class="sub" fill="rgb(153,60,29)">Scans original image for anything YOLO missed</text>
+
+<line x1="340" y1="760" x2="340" y2="794" marker-end="url(#arrow)"/>
 
 <!-- STEP 4: Ollama verification -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="170" y="704" width="340" height="56" rx="8" stroke-width="0.5" style="fill:rgb(238, 237, 254);stroke:rgb(83, 74, 183);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="340" y="722" text-anchor="middle" dominant-baseline="central" style="fill:rgb(60, 52, 137);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Step 4: Ollama verification</text>
-  <text x="340" y="742" text-anchor="middle" dominant-baseline="central" style="fill:rgb(83, 74, 183);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">AI checks for missed objects</text>
-</g>
+<rect x="170" y="794" width="340" height="56" rx="8" fill="rgb(238,237,254)" stroke="rgb(83,74,183)" stroke-width="0.5"/>
+<text x="340" y="812" text-anchor="middle" dominant-baseline="central" class="title" fill="rgb(60,52,137)">Step 4: Ollama verification</text>
+<text x="340" y="832" text-anchor="middle" dominant-baseline="central" class="sub" fill="rgb(83,74,183)">AI checks for missed objects (paranoid mode)</text>
 
-<!-- Arrow -->
-<line x1="340" y1="760" x2="340" y2="794" marker-end="url(#arrow)" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<line x1="340" y1="850" x2="340" y2="884" marker-end="url(#arrow)"/>
 
 <!-- Decision: Missed objects? -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="210" y="794" width="260" height="44" rx="8" stroke-width="0.5" style="fill:rgb(250, 238, 218);stroke:rgb(133, 79, 11);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="340" y="816" text-anchor="middle" dominant-baseline="central" style="fill:rgb(99, 56, 6);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Missed objects found?</text>
-</g>
+<rect x="210" y="884" width="260" height="44" rx="8" fill="rgb(250,238,218)" stroke="rgb(133,79,11)" stroke-width="0.5"/>
+<text x="340" y="906" text-anchor="middle" dominant-baseline="central" class="title" fill="rgb(99,56,6)">Missed objects found?</text>
 
-<!-- No branch: arrow right to save -->
-<line x1="470" y1="816" x2="536" y2="816" marker-end="url(#arrow)" stroke="#888780" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-<text x="503" y="808" text-anchor="middle" style="fill:rgb(61, 61, 58);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:auto">No</text>
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="536" y="794" width="114" height="44" rx="8" stroke-width="0.5" style="fill:rgb(234, 243, 222);stroke:rgb(59, 109, 17);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="593" y="816" text-anchor="middle" dominant-baseline="central" style="fill:rgb(39, 80, 10);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Save output</text>
-</g>
+<!-- No → right → Save -->
+<line x1="470" y1="906" x2="536" y2="906" marker-end="url(#arrow)" stroke="rgb(115,114,108)"/>
+<text x="503" y="898" text-anchor="middle" class="label">No</text>
+<rect x="536" y="884" width="114" height="44" rx="8" fill="rgb(234,243,222)" stroke="rgb(59,109,17)" stroke-width="0.5"/>
+<text x="593" y="906" text-anchor="middle" dominant-baseline="central" class="title" fill="rgb(39,80,10)">Save output</text>
 
-<!-- Yes arrow down -->
-<line x1="340" y1="838" x2="340" y2="872" marker-end="url(#arrow)" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-<text x="352" y="858" style="fill:rgb(61, 61, 58);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:auto">Yes</text>
+<!-- Yes ↓ -->
+<line x1="340" y1="928" x2="340" y2="962" marker-end="url(#arrow)"/>
+<text x="352" y="948" class="label">Yes</text>
 
-<!-- STEP 5: SAM3 2nd pass -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="170" y="872" width="340" height="56" rx="8" stroke-width="0.5" style="fill:rgb(250, 236, 231);stroke:rgb(153, 60, 29);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="340" y="890" text-anchor="middle" dominant-baseline="central" style="fill:rgb(113, 43, 19);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Step 5: SAM3 text-prompt search</text>
-  <text x="340" y="910" text-anchor="middle" dominant-baseline="central" style="fill:rgb(153, 60, 29);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">Re-scan original with text prompts</text>
-</g>
+<!-- STEP 5: SAM3 3rd pass -->
+<rect x="170" y="962" width="340" height="56" rx="8" fill="rgb(250,236,231)" stroke="rgb(153,60,29)" stroke-width="0.5"/>
+<text x="340" y="980" text-anchor="middle" dominant-baseline="central" class="title" fill="rgb(113,43,19)">Step 5: SAM 3 text-prompt search (3rd pass)</text>
+<text x="340" y="1000" text-anchor="middle" dominant-baseline="central" class="sub" fill="rgb(153,60,29)">Re-scan original, apply new masks &amp; blur</text>
 
-<!-- Arrow -->
-<line x1="340" y1="928" x2="340" y2="962" marker-end="url(#arrow)" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<line x1="340" y1="1018" x2="340" y2="1052" marker-end="url(#arrow)"/>
 
-<!-- Apply new masks & save -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="210" y="962" width="260" height="56" rx="8" stroke-width="0.5" style="fill:rgb(234, 243, 222);stroke:rgb(59, 109, 17);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="340" y="980" text-anchor="middle" dominant-baseline="central" style="fill:rgb(39, 80, 10);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Pixelate new masks &amp; save</text>
-  <text x="340" y="1000" text-anchor="middle" dominant-baseline="central" style="fill:rgb(59, 109, 17);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:middle;dominant-baseline:central">Write report entry</text>
-</g>
+<!-- Save final -->
+<rect x="210" y="1052" width="260" height="56" rx="8" fill="rgb(234,243,222)" stroke="rgb(59,109,17)" stroke-width="0.5"/>
+<text x="340" y="1070" text-anchor="middle" dominant-baseline="central" class="title" fill="rgb(39,80,10)">Save output &amp; write report</text>
+<text x="340" y="1090" text-anchor="middle" dominant-baseline="central" class="sub" fill="rgb(59,109,17)">Anonymization_Report.txt updated</text>
 
-<!-- Arrow from save (no branch) down to next image -->
-<line x1="593" y1="838" x2="593" y2="1030" marker-end="url(#arrow)" stroke="#888780" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-<line x1="593" y1="1030" x2="500" y2="1030" marker-end="url(#arrow)" stroke="#888780" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<!-- Loop arrow: "Save (no branch)" → right side → up → "For each image" -->
+<line x1="593" y1="928" x2="593" y2="1120" stroke="rgb(115,114,108)"/>
+<line x1="593" y1="1120" x2="340" y2="1120" stroke="rgb(115,114,108)"/>
+<line x1="340" y1="1120" x2="340" y2="1108" marker-end="url(#arrow)"/>
 
-<!-- Arrow from 2nd pass save down to END -->
-<line x1="340" y1="1018" x2="340" y2="1040" marker-end="url(#arrow)" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<!-- Loop arrow from final save up to "For each image" -->
+<line x1="340" y1="1108" x2="340" y2="1120" stroke="rgb(115,114,108)"/>
+
+<line x1="340" y1="1108" x2="200" y2="1108" stroke="rgb(115,114,108)"/>
+<line x1="200" y1="1108" x2="200" y2="300" stroke="rgb(115,114,108)"/>
+<line x1="200" y1="300" x2="190" y2="300" marker-end="url(#arrow)"/>
+
+<text x="148" y="710" text-anchor="middle" class="label" transform="rotate(-90,148,710)">Next image →</text>
 
 <!-- END -->
-<g style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
-  <rect x="240" y="1040" width="200" height="30" rx="15" stroke-width="0.5" style="fill:rgb(241, 239, 232);stroke:rgb(95, 94, 90);color:rgb(0, 0, 0);stroke-width:0.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="340" y="1055" text-anchor="middle" dominant-baseline="central" style="fill:rgb(68, 68, 65);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:14px;font-weight:500;text-anchor:middle;dominant-baseline:central">Done</text>
-</g>
+<line x1="340" y1="1108" x2="340" y2="1130" marker-end="url(#arrow)"/>
+<rect x="240" y="1130" width="200" height="30" rx="15" fill="rgb(241,239,232)" stroke="rgb(95,94,90)" stroke-width="0.5"/>
+<text x="340" y="1145" text-anchor="middle" dominant-baseline="central" class="title" fill="rgb(68,68,65)">Done</text>
 
-<!-- "Next image" label -->
-<text x="620" y="940" text-anchor="start" style="fill:rgb(61, 61, 58);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:auto">Next</text>
-<text x="620" y="953" text-anchor="start" style="fill:rgb(61, 61, 58);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:12px;font-weight:400;text-anchor:start;dominant-baseline:auto">image</text>
-
-<!-- Loop back arrow from "next image" to "for each image" box -->
-<line x1="593" y1="278" x2="490" y2="278" marker-end="url(#arrow)" stroke="#888780" style="fill:none;stroke:rgb(115, 114, 108);color:rgb(0, 0, 0);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-<line x1="593" y1="278" x2="593" y2="1030" stroke="#888780" stroke-width="1" fill="none" mask="url(#imagine-text-gaps-68y7q6)" style="fill:none;stroke:rgb(136, 135, 128);color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+<!-- Legend note -->
+<text x="340" y="1195" text-anchor="middle" class="sub" fill="rgb(153,60,29)">★ New step — safety net between pixelation and Ollama verification</text>
 
 </svg>
