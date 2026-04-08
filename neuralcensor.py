@@ -23,7 +23,8 @@ from PIL import Image
 # ──────────────────────────────────────────────────────────────
 # Constants
 # ──────────────────────────────────────────────────────────────
-SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".jfif", ".png", ".bmp", ".tiff", ".tif", ".webp"}
+SUPPORTED_EXTENSIONS  = {".jpg", ".jpeg", ".jfif", ".png", ".bmp", ".tiff", ".tif", ".webp"}
+CV2_WRITABLE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp"}  # .jfif etc. → .jpg
 
 SAM3_CHECKPOINT_DIR = Path(__file__).parent / "checkpoints" / "sam3"
 
@@ -602,6 +603,12 @@ class Processor:
         t_total = time.perf_counter()
         self._log(f">> {image_path.name}")
 
+        # Normalize output filename: OpenCV cannot write .jfif → save as .jpg
+        ext = image_path.suffix.lower()
+        out_name = image_path.stem + (ext if ext in CV2_WRITABLE_EXTENSIONS else ".jpg")
+        if out_name != image_path.name:
+            self._log(f"  [INFO] Output format: {ext} → .jpg (OpenCV cannot write {ext})")
+
         cv_image = cv2.imread(str(image_path))
         if cv_image is None:
             self._log("  [ERROR] Could not load image.")
@@ -625,7 +632,7 @@ class Processor:
             dt_sam_only = time.perf_counter() - t_sam_only
             if not masks:
                 self._log("  SAM3 text-search also found nothing – image unchanged.")
-                cv2.imwrite(str(output_dir / image_path.name), cv_image)
+                cv2.imwrite(str(output_dir / out_name), cv_image)
                 return True
             self._log(f"  SAM3 text-search found {len(masks)} object(s) in {dt_sam_only:.2f}s (YOLO had missed them)")
 
@@ -656,7 +663,7 @@ class Processor:
             self._log(f"  SAM3 safety pass: nothing new found ({dt_sam2:.2f}s)")
 
         # -- Step 4: Save intermediate result --
-        out_path = output_dir / image_path.name
+        out_path = output_dir / out_name
         cv2.imwrite(str(out_path), result)
 
         # -- Step 5: Ollama verification (yes/no only) --
