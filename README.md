@@ -16,9 +16,9 @@ Every step runs **100% locally** on your machine. No images are ever uploaded to
 - **Comprehensive Detection** — YOLOv8 detects persons, cars, trucks, buses, motorcycles, and bicycles — even in dense crowds or far backgrounds.
 - **Pixel-Perfect Masking** — SAM 3 replaces crude bounding-box blurs with exact contour masks that follow each object's outline.
 - **Multi-Pass Gaussian Blur** — 3× Gaussian blur + pixel quantization makes reconstruction practically impossible.
-- **SAM 3 Safety Pass** — Before Ollama verification, SAM 3 runs a second text-prompt scan on the original image to catch anything YOLO missed. Only genuinely new regions are added.
+- **SAM 3 Safety Pass** — Before Ollama verification, SAM 3 runs a text-prompt scan on the original image to catch anything YOLO missed. Only genuinely new regions are added.
 - **Strict LLM Verification** — After pixelation and the SAM 3 safety pass, a local Vision LLM (e.g. Gemma 4) reviews the result. It is instructed to be *paranoid*: even a single visible head, arm, or silhouette counts as a missed person.
-- **SAM 3 Third Pass** — If the LLM still finds missed objects, SAM 3 runs one final text-prompt search on the original image for a true correction layer.
+- **Ollama Retry Loop** — If the LLM finds missed objects, SAM 3 re-runs on the original image at a lower confidence threshold (0.12). This repeats up to **3 times**. If objects are still detected after 3 re-passes, the current result is saved and processing continues with the next image.
 - **Batch Processing** — Process single images, flat folders, or nested folder structures via a modern dark-themed GUI.
 - **Fully Automated Setup** — `start.bat` installs everything on first run: Python venv, PyTorch + CUDA, YOLO, SAM 3, and the SAM 3 checkpoint. **No manual steps required.**
 - **Automatic Ollama Management** — `start.bat` checks whether Ollama is installed and whether the required vision model is already downloaded. If the model pull fails due to an outdated Ollama version, it **automatically downloads and installs the latest Ollama**, then retries the model download — all without any user interaction.
@@ -39,9 +39,10 @@ SAM 3 always scans the **original unblurred image** — intentionally: pixelated
 
 To prevent re-processing regions **already blurred**, an **IoU overlap filter** (threshold: 0.3) discards any mask that significantly overlaps with an already-covered area. Only genuinely new, uncovered regions are returned and then blurred. Each newly found mask is immediately added to the "covered" union, so subsequent text prompts also skip it.
 
-This safety pass runs twice:
-1. **Automatically before Ollama** — catches what YOLO missed, before the LLM review
-2. **After Ollama** — only if Ollama flags remaining unblurred objects
+SAM 3 text-search runs in up to **three stages**:
+1. **Safety Pass (always)** — automatically before the Ollama check, catches what YOLO missed
+2. **Ollama-triggered re-pass** — only if Ollama flags remaining unblurred objects; SAM 3 re-runs at a lower confidence threshold (`0.12` instead of `0.15`)
+3. This re-pass repeats up to **3 times** — after 3 failed attempts the image is saved as-is and processing continues
 
 ---
 
@@ -104,10 +105,48 @@ NeuralCensor handles the entire setup automatically via `start.bat`.
    - Mixed → both handled automatically
 4. *(Optional)* Select an output folder. If left blank, a `NeuralCensor_Blurry` folder is created automatically next to the input.
 5. Click **▶ Start Processing**.
-6. Monitor the real-time log:
-   - `YOLO Detection` → `SAM 3 Mask Refinement` → `Pixelation` → `SAM 3 Safety Pass` → `Ollama Verification` → *(if needed)* `SAM 3 3rd Pass`
 
-An `Anonymization_Report.txt` is generated in the output folder documenting each image's processing status.
+### Live Processing Log
+
+The log panel shows detailed progress for every image. At the end of each image, a compact summary block is printed:
+
+```
+┌─ photo.jpg ───────────────────────── 22.5s ─┐
+│  YOLO:    17 persons + 10 vehicles  (27 detected)  │
+│  SAM3:    27 masks (pass 1)                        │
+│  Safety:  +84 new objects  ✓                       │
+│  Ollama:  1 re-pass → +105 new objects  ✓          │
+│  Total:   216 masked regions saved                 │
+└────────────────────────────────────────────────────┘
+```
+
+| Field | Meaning |
+|---|---|
+| **YOLO** | How many persons and vehicles YOLO detected |
+| **SAM3** | Pixel-precise masks generated from YOLO boxes (pass 1) |
+| **Safety** | Additional objects found by the SAM 3 text-search safety pass (always runs before Ollama) |
+| **Ollama** | `all clear ✓` if everything is blurred — or `N re-pass(es) → +X new objects ✓` if SAM 3 had to correct something — or `⚠ ABORTED` after 3 failed re-passes |
+| **Total** | Total number of masked regions saved to disk |
+| *(header right)* | Total processing time for this image |
+
+### Anonymization Report (`Anonymization_Report.txt`)
+
+After processing, a report file is created in the output folder. Each line documents one image:
+
+```
+photo.jpg | 22.5s | YOLO: 17 persons + 10 vehicles → SAM3: 27 masks | Safety: +84 | Ollama: 1 re-pass(es) → +105 new | Total masks: 216
+```
+
+| Column | Meaning |
+|---|---|
+| `filename` | Name of the processed image |
+| `Xs` | Total processing time in seconds |
+| `YOLO: N persons + M vehicles → SAM3: K masks` | YOLO detections split by type, and how many SAM 3 masks were refined from them |
+| `Safety: +N` | New objects found by the automatic SAM 3 safety pass |
+| `Ollama: OK` | Ollama verified the result — nothing missed |
+| `Ollama: N re-pass(es) → +X new` | Ollama found missed objects; SAM 3 re-ran N times and found X new regions |
+| `Ollama: ABORTED after N re-pass(es)` | After 3 re-passes Ollama still detected objects — image saved as-is |
+| `Total masks: N` | Sum of all masked regions across all passes |
 
 ---
 
@@ -130,7 +169,9 @@ Key constants can be adjusted at the top of `neuralcensor.py`:
 | Constant | Default | Description |
 |---|---|---|
 | `YOLO_CONF` | 0.15 | YOLO confidence threshold (lower = more detections) |
-| `SAM3_CONFIDENCE` | 0.15 | SAM 3 mask confidence threshold |
+| `SAM3_CONFIDENCE` | 0.15 | SAM 3 confidence for pass 1 and safety pass |
+| `SAM3_CONFIDENCE_RETRY` | 0.12 | Lower SAM 3 confidence used during Ollama-triggered re-passes |
+| `MAX_OLLAMA_PASSES` | 3 | Maximum number of Ollama-triggered SAM 3 re-passes per image |
 | `BLUR_KERNEL_BASE` | 101 | Gaussian blur kernel size (must be odd) |
 | `BLUR_PASSES` | 3 | Number of blur passes per mask |
 | `QUANTIZE_STEP` | 8 | Pixel quantization step (anti-reconstruction) |
