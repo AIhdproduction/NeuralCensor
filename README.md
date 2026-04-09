@@ -20,6 +20,8 @@ Every step runs **100% locally** on your machine. No images are ever uploaded to
 - **Strict LLM Verification** — After pixelation and the SAM 3 safety pass, a local Vision LLM (e.g. Gemma 4) reviews the result. It is instructed to be *paranoid*: even a single visible head, arm, or silhouette counts as a missed person.
 - **Ollama Retry Loop** — If the LLM finds missed objects, SAM 3 re-runs on the original image at a lower confidence threshold (0.12). This repeats up to **3 times**. If objects are still detected after 3 re-passes, the current result is saved and processing continues with the next image.
 - **Batch Processing** — Process single images, flat folders, or nested folder structures via a modern dark-themed GUI.
+- **Video Support** — Process `.mp4`, `.mov`, `.avi`, `.mkv`, and `.webm` videos frame-by-frame. Audio tracks are automatically preserved using FFmpeg.
+- **Toggle Ollama** — The Ollama verification step can be toggled on/off in the UI. For videos, Ollama is automatically bypassed to prevent excessive VRAM usage and processing time.
 - **Fully Automated Setup** — `start.bat` installs everything on first run: Python venv, PyTorch + CUDA, YOLO, SAM 3, and the SAM 3 checkpoint. **No manual steps required.**
 - **Automatic Ollama Management** — `start.bat` checks whether Ollama is installed and whether the required vision model is already downloaded. If the model pull fails due to an outdated Ollama version, it **automatically downloads and installs the latest Ollama**, then retries the model download — all without any user interaction.
 
@@ -51,6 +53,7 @@ SAM 3 text-search runs in up to **three stages**:
 | Requirement | Details |
 |---|---|
 | **NVIDIA GPU** | Required — minimum **12 GB VRAM** (SAM 3 ~5 GB + Ollama vision model ~7 GB), tested on 24 GB |
+| **FFmpeg** | Highly Recommended — required for copying original audio into the pixelated videos. If not installed, videos are saved without audio. |
 | **Python 3.12+** | Recommended for SAM 3 compatibility |
 | **Ollama** | Must be installed and running. `start.bat` handles installation and model download automatically. |
 | **Git** | Required for SAM 3 installation from GitHub |
