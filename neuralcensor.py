@@ -23,7 +23,9 @@ from PIL import Image
 # ──────────────────────────────────────────────────────────────
 # Constants
 # ──────────────────────────────────────────────────────────────
-SUPPORTED_EXTENSIONS  = {".jpg", ".jpeg", ".jfif", ".png", ".bmp", ".tiff", ".tif", ".webp"}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".jfif", ".png", ".bmp", ".tiff", ".tif", ".webp"}
+VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
+SUPPORTED_EXTENSIONS = IMAGE_EXTENSIONS | VIDEO_EXTENSIONS
 CV2_WRITABLE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp"}  # .jfif etc. → .jpg
 
 SAM3_CHECKPOINT_DIR = Path(__file__).parent / "checkpoints" / "sam3"
@@ -623,7 +625,101 @@ class Processor:
         return new_masks
 
     # -- Process one image --------------------------------------------------
-    def _process_image(self, image_path: Path, output_dir: Path, model: str) -> bool:
+    def _process_video(self, video_path: Path, output_dir: Path) -> bool:
+        import subprocess
+        t_total = time.perf_counter()
+        self._log(f">> [VIDEO] {video_path.name}")
+
+        ext = video_path.suffix.lower()
+        out_name = video_path.name
+        out_path = output_dir / out_name
+        temp_out_path = output_dir / f"temp_{out_name}"
+
+        cap = cv2.VideoCapture(str(video_path))
+        if not cap.isOpened():
+            self._log("  [ERROR] Could not load video.")
+            return False
+
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+        # fallback to 30 fps if not readable
+        if not fps or fps <= 0:
+            fps = 30.0
+
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v') # try to be generic
+        out = cv2.VideoWriter(str(temp_out_path), fourcc, fps, (width, height))
+
+        if not out.isOpened():
+            self._log("  [ERROR] Could not create video writer.")
+            cap.release()
+            return False
+
+        self._log(f"  Processing {total_frames} frames...")
+
+        frame_idx = 0
+        while cap.isOpened():
+            if self._stop_event.is_set():
+                break
+
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            frame_idx += 1
+            if frame_idx % 10 == 0 or frame_idx == total_frames:
+                 self._log(f"  Frame {frame_idx}/{total_frames}")
+
+            # 1. Detection
+            masks, _ = self._generate_masks_hybrid(frame)
+
+            # 2. Blur
+            result = frame.copy()
+            for mask in masks:
+                result = blur_region(result, mask)
+
+            # SAM3 text-search pass
+            safety_masks = self._sam3_text_search(frame, masks)
+            if safety_masks:
+                for mask in safety_masks:
+                    result = blur_region(result, mask)
+
+            out.write(result)
+
+        cap.release()
+        out.release()
+
+        if self._stop_event.is_set():
+             if temp_out_path.exists():
+                 temp_out_path.unlink()
+             return False
+
+        self._log("  Video processing done. Merging audio using ffmpeg...")
+
+        try:
+             # run ffmpeg to copy original audio to new video
+             subprocess.run([
+                 "ffmpeg", "-y", "-i", str(temp_out_path), "-i", str(video_path),
+                 "-c:v", "copy", "-c:a", "aac", "-map", "0:v:0", "-map", "1:a:0?",
+                 "-shortest", str(out_path)
+             ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+             if temp_out_path.exists():
+                 temp_out_path.unlink()
+             self._log("  [OK] Merged audio successfully.")
+        except (subprocess.CalledProcessError, FileNotFoundError):
+             self._log("  [WARN] ffmpeg failed or not found. Saving video without audio.")
+             if out_path.exists():
+                 out_path.unlink()
+             temp_out_path.rename(out_path)
+
+        dt_total = time.perf_counter() - t_total
+        self._log(f"  [DONE] Video completed in {dt_total:.2f}s")
+        return True
+
+    def _process_image(self, image_path: Path, output_dir: Path, model: str, use_ollama: bool) -> bool:
         t_total = time.perf_counter()
         self._log(f">> {image_path.name}")
 
@@ -706,6 +802,17 @@ class Processor:
         # -- Step 5: Ollama verification loop (max MAX_OLLAMA_PASSES re-passes) --
         ollama_pass_count = 0
         ollama_aborted    = False
+
+        if not use_ollama:
+            self._log("  [INFO] Ollama verification disabled. Skipping.")
+            dt_total = time.perf_counter() - t_total
+            self._log(self._summary(
+                image_path.name, dt_total,
+                yolo_persons, yolo_vehicles, sam3_pass1,
+                safety_count, ollama_pass_count, third_count, ollama_missed,
+                len(all_masks)
+            ))
+            return True
 
         while True:
             t_ollama = time.perf_counter()
@@ -859,6 +966,7 @@ class Processor:
         image_paths: list[Path],
         output_dir: Path | None,
         model: str,
+        use_ollama: bool,
         output_dir_map: dict[Path, Path] | None = None,
     ):
         self._stop_event.clear()
@@ -880,8 +988,9 @@ class Processor:
             return
 
         # Warmup Ollama (pre-load model into GPU/RAM)
-        if not self._warmup_ollama(model):
-            self._log("[WARN] Ollama warmup failed - verification may be slow on first image.")
+        if use_ollama:
+            if not self._warmup_ollama(model):
+                self._log("[WARN] Ollama warmup failed - verification may be slow on first image.")
 
         self._log("Pipeline: YOLO detection -> SAM3 mask refinement -> pixelation -> SAM3 text-search (safety) -> Ollama verification")
 
@@ -901,7 +1010,10 @@ class Processor:
             img_output_dir.mkdir(parents=True, exist_ok=True)
 
             self._progress(idx / total, idx, total)
-            ok = self._process_image(img_path, img_output_dir, model)
+            if img_path.suffix.lower() in VIDEO_EXTENSIONS:
+                ok = self._process_video(img_path, img_output_dir)
+            else:
+                ok = self._process_image(img_path, img_output_dir, model, use_ollama)
             if ok:
                 success_count += 1
 
@@ -1002,6 +1114,17 @@ class NeuralCensorApp(ctk.CTk):
             font=ctk.CTkFont(family="Segoe UI", size=13),
             width=248,
         ).pack(padx=16, pady=(0, 14))
+
+        self.use_ollama_var = ctk.BooleanVar(value=True)
+        ctk.CTkSwitch(
+            left,
+            text="Enable Ollama (Photos only)",
+            variable=self.use_ollama_var,
+            font=ctk.CTkFont(family="Segoe UI", size=12),
+            progress_color="#e94560",
+            button_color="#ffffff",
+            button_hover_color="#eaeaea"
+        ).pack(anchor="w", padx=16, pady=(0, 14))
 
         self._build_separator(left)
 
@@ -1213,7 +1336,7 @@ class NeuralCensorApp(ctk.CTk):
           • Both                               → combines both
           • No images anywhere                 → error label
         """
-        folder = filedialog.askdirectory(title="Select Folder with Images")
+        folder = filedialog.askdirectory(title="Select Folder with Images and Videos")
         if not folder:
             return
 
@@ -1361,7 +1484,7 @@ class NeuralCensorApp(ctk.CTk):
         self._processor = Processor(self._msg_queue)
         self._proc_thread = threading.Thread(
             target=self._processor.run,
-            args=(self._input_paths, effective_output_dir, self.model_var.get()),
+            args=(self._input_paths, effective_output_dir, self.model_var.get(), self.use_ollama_var.get()),
             kwargs={"output_dir_map": self._output_dir_map},
             daemon=True,
         )
