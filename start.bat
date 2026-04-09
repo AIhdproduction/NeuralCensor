@@ -129,6 +129,28 @@ if errorlevel 1 (
     echo  [OK] PyTorch with CUDA installed successfully.
 )
 
+:: ─── Step 3.5: Install FFmpeg ─────────────────────────────────────
+echo.
+echo  [Step 3.5/7] Checking for FFmpeg ...
+echo  ----------------------------------------------------------------
+ffmpeg -version >nul 2>nul
+if errorlevel 1 (
+    echo  [INFO] FFmpeg is missing. Downloading and installing FFmpeg ...
+    echo         This might take a minute...
+    powershell -Command "Invoke-WebRequest -Uri 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip' -OutFile '%TEMP%fmpeg.zip'"
+    if errorlevel 1 (
+        echo  [ERROR] Failed to download FFmpeg. Videos will not have audio.
+    ) else (
+        powershell -Command "Expand-Archive -Path '%TEMP%fmpeg.zip' -DestinationPath '%TEMP%fmpeg_ext' -Force"
+        xcopy /s /y "%TEMP%fmpeg_extfmpeg-master-latest-win64-gplin\*" "%CD%env\Scripts" >nul 2>nul
+        echo  [OK] FFmpeg installed successfully.
+        del "%TEMP%fmpeg.zip"
+        rmdir /s /q "%TEMP%fmpeg_ext"
+    )
+) else (
+    echo  [OK] FFmpeg is already installed.
+)
+
 :: ─── Step 4: Install base dependencies ────────────────────────────
 echo.
 echo  [Step 4/7] Installing base dependencies ...
