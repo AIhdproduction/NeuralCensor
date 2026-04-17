@@ -6,7 +6,7 @@ An AI-powered tool for fully automatic, pixel-precise image and video anonymizat
 1. **SAM 3 (Segment Anything 3)** — direct text-prompt segmentation: pass 1 + safety pass
 2. **Ollama Vision LLM** — paranoid verification with automatic SAM 3 re-segmentation
 
-**Videos:**
+**Videos (Beta):**
 1. **SAM 3 (Segment Anything 3)** — direct text-prompt segmentation on every frame (no YOLO needed)
 2. **Ollama Vision LLM** — spot-check verification on sampled frames after rendering
 
