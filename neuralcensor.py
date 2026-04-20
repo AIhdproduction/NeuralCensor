@@ -793,10 +793,40 @@ class Processor:
             return False
 
         # ── Phase 3: all_frame_masks = kf_masks_map (every frame was segmented) ──
-        self._status(f"Rendering {actual_total} frames (parallel) ...")
         all_frame_masks: list[list[np.ndarray]] = [
             kf_masks_map.get(i, []) for i in range(actual_total)
         ]
+
+        # ── Phase 3.5: Temporal smoothing – fill single-frame gaps ─────────
+        # Prevents flickering where SAM3 misses objects on isolated frames
+        # (common with non-integer FPS like 29.97 or 23.976).
+        # Rule: propagate masks at most 1 frame from a REAL detection.
+        # has_real_masks is a snapshot BEFORE smoothing, so propagated masks
+        # can never chain beyond 1 frame.
+        has_real_masks = [bool(all_frame_masks[i]) for i in range(actual_total)]
+        filled_count = 0
+        for i in range(actual_total):
+            if all_frame_masks[i]:
+                continue  # already has real masks
+            prev_real = has_real_masks[i - 1] if i > 0 else False
+            next_real = has_real_masks[i + 1] if i < actual_total - 1 else False
+            if prev_real and next_real:
+                # Gap between two real detections – carry previous masks
+                all_frame_masks[i] = list(all_frame_masks[i - 1])
+                filled_count += 1
+            elif prev_real:
+                # Extend forward by 1 frame from last real detection
+                all_frame_masks[i] = list(all_frame_masks[i - 1])
+                filled_count += 1
+            elif next_real:
+                # Extend backward by 1 frame from next real detection
+                all_frame_masks[i] = list(all_frame_masks[i + 1])
+                filled_count += 1
+
+        if filled_count > 0:
+            self._log(f"  [SMOOTH] Filled {filled_count} frame gap(s) via temporal smoothing.")
+
+        self._status(f"Rendering {actual_total} frames (parallel) ...")
 
         # ── Phase 4: Parallel blur rendering on all CPU cores ──────────────
         n_render_workers = min(os.cpu_count() or 4, 8)
