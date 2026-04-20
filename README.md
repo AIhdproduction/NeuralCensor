@@ -4,7 +4,8 @@ An AI-powered tool for fully automatic, pixel-precise image and video anonymizat
 
 **Images:**
 1. **SAM 3 (Segment Anything 3)** — direct text-prompt segmentation: pass 1 + safety pass
-2. **Ollama Vision LLM** — paranoid verification with automatic SAM 3 re-segmentation
+2. **Falcon Perception (0.6B)** — additional detector running alongside SAM3 for higher detection coverage (IoU-merged)
+3. **Ollama Vision LLM** — paranoid verification with automatic SAM 3 re-segmentation
 
 **Videos (Beta):**
 1. **SAM 3 (Segment Anything 3)** — direct text-prompt segmentation on every frame (no YOLO needed)
@@ -17,11 +18,11 @@ Every step runs **100% locally** on your machine. No images are ever uploaded to
 ## Key Features
 
 - **Privacy First** — All processing happens on-device. Your images and videos never leave your machine.
-- **Comprehensive Detection** — SAM 3 text-prompts detect persons, cars, trucks, buses, motorcycles, and license plates for both images and videos.
+- **Comprehensive Detection** — SAM 3 + Falcon Perception text-prompts detect persons, cars, trucks, buses, motorcycles, and license plates. Two independent architectures are merged via IoU filtering, catching blind spots of each model.
 - **Pixel-Perfect Masking** — SAM 3 replaces crude bounding-box blurs with exact contour masks that follow each object's outline.
 - **Multi-Pass Gaussian Blur** — 3x Gaussian blur + pixel quantization makes reconstruction practically impossible.
-- **Ollama Retry Loop** — If the LLM finds missed objects, SAM 3 re-runs on the original image at a lower confidence threshold (`0.12`). This repeats up to **3 times**.
-- **Runtime Settings** — Click the gear icon in the header to adjust all pipeline parameters (blur strength, SAM 3 confidence, Ollama limits, text prompts) directly in the UI — no code editing required. Code defaults are always shown for reference.
+- **Ollama Retry Loop** — If the LLM finds missed objects, SAM 3 re-runs on the original image at a lower confidence threshold (`0.15`). This repeats up to **3 times**.
+- **Runtime Settings** — Click the gear icon in the header to adjust all pipeline parameters (blur strength, SAM 3 confidence, Falcon Perception, Ollama limits, text prompts) directly in the UI — no code editing required. Code defaults are always shown for reference.
 - **Batch Processing** — Process single files, flat folders, or nested folder structures via a modern dark-themed GUI.
 - **Flexible Input** — Click **Browse Input** and choose between a **folder** (auto-detects flat/subfolder structure) or **individual files** (select any mix of images and videos).
 - **Video Support** — Process `.mp4`, `.mov`, `.avi`, `.mkv`, and `.webm` videos using SAM 3 text-prompt segmentation on **every single frame** for perfect, flicker-free anonymization. Audio tracks are automatically preserved using FFmpeg.
@@ -44,8 +45,11 @@ Every step runs **100% locally** on your machine. No images are ever uploaded to
 | Step | What happens |
 |---|---|
 | **SAM 3 text-search** | Text-prompt search on original image → pixel-precise contour masks |
+| **Falcon Perception** | Additional AI detector (0.6B) runs text-prompt search; new masks are IoU-filtered against SAM3 results and merged |
 | **Blur** | 3× Gaussian blur + quantization applied to every mask |
 | **Ollama verify** | Vision LLM reviews result; triggers SAM 3 re-passes if needed (up to 3x) |
+
+> **Why two detectors?** SAM 3 and Falcon Perception use fundamentally different architectures — each has different blind spots. By running both and merging their masks via IoU overlap filtering, NeuralCensor achieves significantly higher detection coverage than either model alone. Falcon adds ~1 GB VRAM and runs only on images (too slow per-frame for video).
 
 ### Video Pipeline
 
@@ -54,6 +58,7 @@ Every step runs **100% locally** on your machine. No images are ever uploaded to
 | **Pre-read** | All frames loaded into RAM for parallel processing |
 | **SAM3 text-prompt** | Every frame segmented for "person", "car", "truck" — no skipping |
 | **Dual-GPU** | Frames distributed across available GPUs automatically |
+| **Sequential drop-check** | If a frame loses >50% of the previous frame's mask, SAM3 re-runs that frame at lower confidence (0.15) to recover the object |
 | **Temporal smoothing** | Single-frame gaps where SAM3 missed an object are filled from the adjacent real detection (max 1 frame propagation) |
 | **Blur** | All frames rendered in parallel on CPU cores |
 | **Audio** | Original audio merged back via FFmpeg |
@@ -61,7 +66,9 @@ Every step runs **100% locally** on your machine. No images are ever uploaded to
 
 > **Why SAM3 on every frame?** Frame-skipping + interpolation causes flickering when objects move. Processing every frame guarantees pixel-perfect, flicker-free anonymization throughout the entire video.
 >
-> **Temporal smoothing** catches the remaining edge cases: videos with non-integer frame rates (e.g. 29.97, 23.976) can cause SAM3 to miss an object on a single isolated frame. The smoothing pass fills those gaps by copying masks from the direct neighbor frame — but only if that neighbor has a real SAM3 detection. Propagation is strictly limited to 1 frame so masks are never invented in regions where nothing was detected.
+> **Sequential mask-drop detection** acts as a safety net: if an object is tracked but suddenly loses more than 50% of its mask area in the very next frame, NeuralCensor automatically re-evaluates that frame with higher sensitivity (0.15 confidence) to ensure the object isn't lost. 
+>
+> **Temporal smoothing** then catches the remaining edge cases: videos with non-integer frame rates (e.g. 29.97, 23.976) can cause SAM3 to completely miss an object on an isolated frame. The smoothing pass fills those gaps by copying masks from the direct neighbor frame — but only if that neighbor has a real SAM3 detection. Propagation is strictly limited to 1 frame so masks are never invented in regions where nothing was detected.
 
 ### Why does SAM 3 scan the original image — won't it find already-blurred areas again?
 
@@ -75,14 +82,14 @@ An **IoU overlap filter** (threshold: 0.3) discards any mask that significantly 
 
 | Requirement | Details |
 |---|---|
-| **NVIDIA GPU** | Required — minimum **18 GB VRAM** (SAM 3 + Ollama vision model run simultaneously), tested on RTX 4090 (24 GB) |
+| **NVIDIA GPU** | Required — minimum **18 GB VRAM** (SAM 3 + Falcon Perception + Ollama vision model run simultaneously), tested on RTX 4090 (24 GB) |
 | **FFmpeg** | Highly Recommended — required for copying original audio into pixelated videos. If not installed, videos are saved without audio. |
 | **Python 3.12+** | Recommended for SAM 3 compatibility |
 | **Ollama** | Must be installed and running. `start.bat` handles installation and model download automatically. |
 | **Git** | Required for SAM 3 installation from GitHub |
 | **HuggingFace Account** | Required for downloading the SAM 3 checkpoint (free, gated access) |
 
-> **⚠️ GPU Requirement:** NeuralCensor loads SAM 3 (~5 GB VRAM) and an Ollama vision model (e.g. `gemma4:e4b` ~7 GB VRAM) simultaneously. A GPU with **at least 18 GB VRAM** is required. **Tested on NVIDIA RTX 4090 (24 GB VRAM).**
+> **⚠️ GPU Requirement:** NeuralCensor loads SAM 3 (~5 GB VRAM), Falcon Perception (~1 GB VRAM), and an Ollama vision model (e.g. `gemma4:e4b` ~7 GB VRAM) simultaneously. A GPU with **at least 18 GB VRAM** is required. **Tested on NVIDIA RTX 4090 (24 GB VRAM).**
 
 ---
 
@@ -91,7 +98,7 @@ An **IoU overlap filter** (threshold: 0.3) discards any mask that significantly 
 NeuralCensor handles the entire setup automatically via `start.bat`.
 
 1. Clone or download this repository.
-2. Ensure you have sufficient disk space (~10 GB for PyTorch, SAM 3, and model checkpoints).
+2. Ensure you have sufficient disk space (~12 GB for PyTorch, SAM 3, Falcon Perception, and model checkpoints).
 3. **Double-click `start.bat`**.
 
 > **The only manual input required** is your **HuggingFace access token** — needed once to download the SAM 3 checkpoint. Everything else is fully automatic.
@@ -109,14 +116,14 @@ NeuralCensor handles the entire setup automatically via `start.bat`.
 
 1. Creates an isolated Python virtual environment (`venv`)
 2. Installs PyTorch 2.10 with CUDA 12.8
-3. Installs all dependencies from `requirements.txt`
+3. Installs all dependencies from `requirements.txt` (including `transformers` for Falcon Perception)
 4. Installs SAM 3 from the official GitHub repository
 5. **Asks once for your HuggingFace token** — then downloads the SAM 3 checkpoint (~5 GB)
 6. Checks Ollama and the vision model:
    - If Ollama is not installed → shows download link
    - If the model pull fails (e.g. Ollama too old) → **automatically downloads and installs the latest Ollama silently**, then retries
    - If the model is missing → **automatically pulls `gemma4:e4b`** (~7 GB)
-7. Launches the NeuralCensor GUI
+7. Launches the NeuralCensor GUI (Falcon Perception is auto-downloaded from HuggingFace on first use, ~1.2 GB)
 
 > **Entering the HuggingFace token is the only manual step.** After that, simply wait for setup to finish.
 
@@ -151,8 +158,9 @@ The log panel shows detailed progress. At the end of each image, a compact summa
 ```
 ┌─ photo.jpg ───────────────────────── 12.3s ─┐
 │  SAM3:    27 objects (text-search)           │
-│  Ollama:  1 re-pass -> +5 new objects       │
-│  Total:   32 masked regions saved            │
+│  Falcon:  +5 new objects                     │
+│  Ollama:  1 re-pass -> +3 new objects        │
+│  Total:   35 masked regions saved            │
 └─────────────────────────────────────────────┘
 ```
 
@@ -162,7 +170,7 @@ The log panel shows detailed progress. At the end of each image, a compact summa
 
 All pipeline parameters can be adjusted **live in the UI** — click the **gear icon** in the top-right corner of the header. Changes take effect on the next processing run. The code defaults (shown in grey inside the dialog) serve as the baseline and can be restored at any time via **Reset to Defaults**.
 
-The settings dialog has three tabs:
+The settings dialog has four tabs:
 
 ### Blur
 
@@ -178,11 +186,19 @@ The settings dialog has three tabs:
 | Setting | Default | Description |
 |---|---|---|
 | Confidence | 0.20 | Detection confidence threshold (lower = more detections) |
-| Confidence (Retry) | 0.12 | Lower confidence for Ollama-triggered re-passes |
+| Confidence (Retry) | 0.15 | Lower confidence for Ollama re-passes and video mask-drop recovery |
 | Min Mask Pixels | 100 | Masks smaller than this are discarded |
 | Overlap IoU Threshold | 0.3 | Masks overlapping existing ones above this ratio are skipped |
 | Image SAM3 Prompts | person, car, truck, bus, motorcycle, license plate | Text prompts for image segmentation |
 | Video SAM3 Prompts | person, car, truck | Text prompts for video segmentation |
+
+### Falcon Perception
+
+| Setting | Default | Description |
+|---|---|---|
+| Enable | On | Toggle Falcon Perception as additional detector (~1 GB VRAM) |
+| Falcon Text Prompts | person, car, truck, bus, motorcycle, license plate | Text prompts for Falcon segmentation |
+| Max Dimension | 1024 | Maximum image edge length for Falcon inference |
 
 ### Ollama
 
@@ -208,6 +224,7 @@ The underlying AI models and libraries carry their own licenses:
 | Component | License |
 |---|---|
 | **SAM 3 (Meta)** | Apache 2.0 |
+| **Falcon Perception (TII/UAE)** | Apache 2.0 |
 | **Ollama** | MIT |
 | **Gemma 4 (Google)** | Gemma License — allows commercial use with specific redistribution terms |
 | **OpenCV** | Apache 2.0 |
@@ -227,3 +244,5 @@ NeuralCensor/
 └── checkpoints/
     └── sam3/             # SAM 3 model checkpoint (downloaded via HuggingFace)
 ```
+
+> **Falcon Perception** is automatically downloaded from HuggingFace on first use (~1.2 GB) — no manual setup required.

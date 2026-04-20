@@ -39,7 +39,7 @@ AUTO_OUTPUT_NAME    = "NeuralCensor_Blurry"
 
 SAM3_MIN_MASK_PX    = 100               # min mask pixels before falling back to bbox
 SAM3_CONFIDENCE     = 0.20              # confidence for SAM3 text-search (higher = fewer false positives)
-SAM3_CONFIDENCE_RETRY = 0.12            # lower confidence for Ollama-triggered re-passes
+SAM3_CONFIDENCE_RETRY = 0.15            # lower confidence for Ollama-triggered re-passes
 SAM3_OVERLAP_IOU    = 0.3               # IoU threshold: new mask vs 1st-pass masks
 MAX_OLLAMA_PASSES   = 3                 # max Ollama-triggered SAM3 re-passes per image
 VIDEO_SPOT_CHECK_FRAMES = 10            # frames to sample for Ollama spot-check after video rendering
@@ -49,6 +49,10 @@ NEURALCENSOR_URL     = "https://github.com/AIhdproduction/NeuralCensor"
 
 # Text prompts for SAM3 2nd pass (searched independently on the original image)
 SAM3_TEXT_PROMPTS   = ["person", "car", "truck", "bus", "motorcycle", "license plate"]
+
+# Falcon Perception (additional detector alongside SAM3)
+FALCON_TEXT_PROMPTS  = ["person", "car", "truck", "bus", "motorcycle", "license plate"]
+FALCON_MAX_DIMENSION = 1024
 
 # ── Video pipeline constants ───────────────────────────────────────────────
 # Text prompts used for SAM3 video segmentation (keep minimal – fewer = faster)
@@ -102,6 +106,9 @@ class _Cfg:
     video_spot_check_frames = VIDEO_SPOT_CHECK_FRAMES
     sam3_text_prompts       = list(SAM3_TEXT_PROMPTS)
     video_sam3_prompts      = list(VIDEO_SAM3_PROMPTS)
+    falcon_enabled          = True
+    falcon_text_prompts     = list(FALCON_TEXT_PROMPTS)
+    falcon_max_dimension    = FALCON_MAX_DIMENSION
 
     def reset(self):
         self.blur_kernel_base        = BLUR_KERNEL_BASE
@@ -117,6 +124,9 @@ class _Cfg:
         self.video_spot_check_frames = VIDEO_SPOT_CHECK_FRAMES
         self.sam3_text_prompts       = list(SAM3_TEXT_PROMPTS)
         self.video_sam3_prompts      = list(VIDEO_SAM3_PROMPTS)
+        self.falcon_enabled          = True
+        self.falcon_text_prompts     = list(FALCON_TEXT_PROMPTS)
+        self.falcon_max_dimension    = FALCON_MAX_DIMENSION
 
 cfg = _Cfg()
 
@@ -250,6 +260,8 @@ class Processor:
         self.sam3_proc2    = None    # second SAM3 instance (GPU 1 if available)
         self.sam3_loaded   = False
         self.ollama_ready  = False
+        self.falcon_model  = None
+        self.falcon_loaded = False
         self._stop_event   = threading.Event()
 
     # ── Message helpers ──────────────────────────────────────
@@ -392,6 +404,141 @@ class Processor:
         except Exception as exc:
             self._log(f"  [WARN] Second SAM3 instance on {device} failed: {exc}")
             return False
+
+    # -- Load Falcon Perception (additional detector) -------------------------
+    def _load_falcon(self) -> bool:
+        """Load Falcon Perception model for additional detection."""
+        if self.falcon_loaded:
+            return True
+        if not cfg.falcon_enabled:
+            return False
+        try:
+            import torch
+            from transformers import AutoModelForCausalLM
+
+            self._log("[LOAD] Loading Falcon Perception (0.6B) ...")
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+
+            self.falcon_model = AutoModelForCausalLM.from_pretrained(
+                "tiiuae/falcon-perception",
+                trust_remote_code=True,
+                device_map={"": device},
+                attn_implementation="eager",
+                torch_dtype=torch.bfloat16,
+            )
+            self.falcon_loaded = True
+            self._log("[OK] Falcon Perception loaded (~1 GB VRAM).")
+            return True
+        except Exception as exc:
+            self._log(f"[WARN] Falcon Perception not available: {exc}")
+            self._log("       Continuing with SAM3 only.")
+            return False
+
+    # -- Falcon Perception text-prompt search ---------------------------------
+    def _falcon_search(
+        self,
+        cv_image_original: np.ndarray,
+        existing_masks: list[np.ndarray],
+    ) -> list[np.ndarray]:
+        """
+        Run Falcon Perception text-prompt search on the original image.
+        Returns only NEW masks that don't overlap with existing_masks (IoU filter).
+        """
+        import torch
+        from pycocotools import mask as mask_utils
+
+        h, w = cv_image_original.shape[:2]
+        new_masks: list[np.ndarray] = []
+
+        # Build union of existing masks for IoU check
+        existing_union = np.zeros((h, w), dtype=np.uint8)
+        for m in existing_masks:
+            existing_union = np.maximum(existing_union, m)
+
+        rgb = cv2.cvtColor(cv_image_original, cv2.COLOR_BGR2RGB)
+        pil_img = Image.fromarray(rgb)
+
+        prompts = cfg.falcon_text_prompts
+        self._log(f"  -> Falcon Perception search ({len(prompts)} prompts) ...")
+        t_falcon = time.perf_counter()
+
+        # Batch all prompts in a single generate call (image encoded once)
+        try:
+            all_preds = self.falcon_model.generate(
+                [pil_img] * len(prompts),
+                prompts,
+                max_dimension=cfg.falcon_max_dimension,
+                compile=False,
+            )
+        except Exception as exc:
+            self._log(f"    Falcon batch error - {exc}")
+            self._log(f"    Retrying prompts individually with reduced dimension (768) ...")
+            all_preds = []
+            for prompt in prompts:
+                try:
+                    preds = self.falcon_model.generate(
+                        [pil_img],
+                        [prompt],
+                        max_dimension=768,
+                        compile=False,
+                    )
+                    all_preds.extend(preds)
+                except Exception as e:
+                    self._log(f"    Falcon single prompt error '{prompt}': {e}")
+                    all_preds.append([])
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        for prompt, preds in zip(prompts, all_preds):
+            if not preds:
+                self._log(f"    Falcon '{prompt}': 0 detections")
+                continue
+
+            found_count = 0
+            for p in preds:
+                # Decode RLE mask to binary
+                rle = p["mask_rle"]
+                rle_coco = {"size": rle["size"], "counts": rle["counts"].encode("utf-8")}
+                binary = mask_utils.decode(rle_coco).astype(np.uint8) * 255
+
+                # Resize if dimensions don't match original
+                if binary.shape != (h, w):
+                    binary = cv2.resize(
+                        binary.astype(np.float32), (w, h),
+                        interpolation=cv2.INTER_LINEAR,
+                    )
+                    binary = (binary > 127).astype(np.uint8) * 255
+
+                px = int(np.count_nonzero(binary))
+                if px < cfg.sam3_min_mask_px:
+                    continue
+
+                # IoU overlap check against existing masks
+                intersection = int(np.count_nonzero(np.bitwise_and(binary, existing_union)))
+                union_area = int(np.count_nonzero(np.bitwise_or(binary, existing_union)))
+                iou = intersection / union_area if union_area > 0 else 0.0
+
+                if iou > cfg.sam3_overlap_iou:
+                    continue  # Already covered by SAM3
+
+                self._log(f"    Falcon '{prompt}': NEW mask {px:,} px (IoU={iou:.2f})")
+                padded = pad_mask(binary)
+                new_masks.append(padded)
+                existing_union = np.maximum(existing_union, padded)
+                found_count += 1
+
+            if found_count == 0:
+                self._log(f"    Falcon '{prompt}': 0 new detections")
+
+        dt_total = time.perf_counter() - t_falcon
+        self._log(f"  Falcon Perception: {len(new_masks)} new mask(s) in {dt_total:.2f}s")
+
+        # Free VRAM
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        return new_masks
 
     # -- Warmup Ollama (pre-load model into GPU memory) ---------------------
     def _warmup_ollama(self, model: str) -> bool:
@@ -797,6 +944,49 @@ class Processor:
             kf_masks_map.get(i, []) for i in range(actual_total)
         ]
 
+        # ── Phase 3.1: Sequential mask-drop detection & re-pass ─────────────
+        # If frame i loses > 50% of the mask area from frame i-1, re-run with lower confidence.
+        if actual_total > 1 and all_frames:
+            self._status("Checking for missed objects (sequential re-pass) ...")
+            repass_count = 0
+            h, w = all_frames[0].shape[:2]
+            original_conf = self.sam3_proc.confidence_threshold
+            
+            for i in range(1, actual_total):
+                if self._stop_event.is_set():
+                    break
+                prev_masks = all_frame_masks[i - 1]
+                curr_masks = all_frame_masks[i]
+                
+                if not prev_masks:
+                    continue
+                    
+                prev_union = np.zeros((h, w), dtype=np.uint8)
+                for m in prev_masks:
+                    prev_union = np.maximum(prev_union, m)
+                    
+                prev_area = int(np.count_nonzero(prev_union))
+                if prev_area == 0:
+                    continue
+                    
+                curr_union = np.zeros((h, w), dtype=np.uint8)
+                for m in curr_masks:
+                    curr_union = np.maximum(curr_union, m)
+                    
+                intersection = int(np.count_nonzero(np.bitwise_and(prev_union, curr_union)))
+                
+                # If we lost more than 50% of the previous mask area
+                if (intersection / prev_area) < 0.5:
+                    self.sam3_proc.confidence_threshold = cfg.sam3_confidence_retry
+                    new_masks = self._video_sam3_frame(all_frames[i], proc=self.sam3_proc)
+                    if new_masks:
+                        all_frame_masks[i] = new_masks
+                        repass_count += 1
+                    self.sam3_proc.confidence_threshold = original_conf
+                    
+            if repass_count > 0:
+                self._log(f"  [RE-PASS] Recovered masks in {repass_count} frame(s) using lower confidence.")
+
         # ── Phase 3.5: Temporal smoothing – fill single-frame gaps ─────────
         # Prevents flickering where SAM3 misses objects on isolated frames
         # (common with non-integer FPS like 29.97 or 23.976).
@@ -988,16 +1178,27 @@ class Processor:
             dt_total = time.perf_counter() - t_total
             self._log(self._summary(
                 image_path.name, dt_total,
-                sam3_pass1, 0, third_count, False,
+                sam3_pass1, 0, 0, False, 0,
             ))
             return True
         self._log(f"  SAM3 pass 1: {sam3_pass1} object(s) found in {dt_sam1:.2f}s")
 
+        # -- Step 1b: Falcon Perception additional search --
+        falcon_count = 0
+        if self.falcon_loaded:
+            self._status(f"Falcon search | {image_path.name} ({file_idx+1}/{total_files})")
+            self._progress((file_idx + 0.25) / total_files, file_idx, total_files)
+            falcon_masks = self._falcon_search(cv_original, masks)
+            falcon_count = len(falcon_masks)
+            if falcon_masks:
+                masks = masks + falcon_masks
+                self._log(f"  Combined: {sam3_pass1} (SAM3) + {falcon_count} (Falcon) = {len(masks)} total")
+
         # -- Step 2: Apply pixelation (1st pass masks) --
-        self._status(f"Pixelating {sam3_pass1} mask(s) | {image_path.name} ({file_idx+1}/{total_files})")
+        self._status(f"Pixelating {len(masks)} mask(s) | {image_path.name} ({file_idx+1}/{total_files})")
         self._progress((file_idx + 0.4) / total_files, file_idx, total_files)
         t_blur = time.perf_counter()
-        self._log(f"  -> Pixelating {sam3_pass1} mask(s), {cfg.blur_passes}x blur ...")
+        self._log(f"  -> Pixelating {len(masks)} mask(s), {cfg.blur_passes}x blur ...")
         result = cv_image.copy()
         for mask in masks:
             result = blur_region(result, mask)
@@ -1020,16 +1221,18 @@ class Processor:
             dt_total = time.perf_counter() - t_total
             self._log(self._summary(
                 image_path.name, dt_total,
-                sam3_pass1, 0, 0, False,
+                sam3_pass1, 0, 0, False, falcon_count,
             ))
             # Write report entry
             report_file = output_dir / "Anonymization_Report.txt"
             with open(report_file, "a", encoding="utf-8") as f:
+                total_masks = sam3_pass1 + falcon_count
+                model_label = "SAM3+Falcon" if self.falcon_loaded else "SAM3"
                 f.write(
                     f"{image_path.name} | {dt_total:.1f}s"
-                    f" | SAM3: {sam3_pass1} masks"
+                    f" | {model_label}: {sam3_pass1 + falcon_count} masks"
                     f" | Ollama: disabled"
-                    f" | Total masks: {sam3_pass1}\n"
+                    f" | Total masks: {total_masks}\n"
                 )
             return True
 
@@ -1093,10 +1296,11 @@ class Processor:
         self._log(self._summary(
             image_path.name, dt_total,
             sam3_pass1, ollama_pass_count, third_count, ollama_aborted,
+            falcon_count,
         ))
 
         # -- Report file --
-        total_masks = sam3_pass1 + third_count
+        total_masks = sam3_pass1 + falcon_count + third_count
         report_file = output_dir / "Anonymization_Report.txt"
         with open(report_file, "a", encoding="utf-8") as f:
             if not ollama_missed:
@@ -1105,9 +1309,11 @@ class Processor:
                 ollama_str = f"Ollama: ABORTED after {ollama_pass_count} re-pass(es) (still detecting)"
             else:
                 ollama_str = f"Ollama: {ollama_pass_count} re-pass(es) -> +{third_count} new"
+            
+            model_label = "SAM3+Falcon" if self.falcon_loaded else "SAM3"
             f.write(
                 f"{image_path.name} | {dt_total:.1f}s"
-                f" | SAM3: {sam3_pass1} masks"
+                f" | {model_label}: {sam3_pass1 + falcon_count} masks"
                 f" | {ollama_str}"
                 f" | Total masks: {total_masks}\n"
             )
@@ -1123,12 +1329,14 @@ class Processor:
         ollama_pass_count: int,
         third_count: int,
         ollama_aborted: bool,
+        falcon_count: int = 0,
     ) -> str:
         """
         Returns a formatted summary block for the processing log.
         Example:
           ┌─ photo.jpg ──────────────────────── 22.5s ─┐
           │  SAM3:    27 objects (text-search)           │
+          │  Falcon:  +5 new objects                     │
           │  Ollama:  1 re-pass -> +5 new objects       │
           │  Total:   32 masked regions saved            │
           └────────────────────────────────────────────┘
@@ -1139,7 +1347,7 @@ class Processor:
             pad = width - 2 - len(content)
             return f"\u2502{content}{' ' * max(pad, 0)}\u2502"
 
-        total_masks = sam3_pass1 + third_count
+        total_masks = sam3_pass1 + falcon_count + third_count
 
         time_str = f"{dt:.1f}s"
         title    = f" {filename} "
@@ -1148,6 +1356,9 @@ class Processor:
 
         lines = [header]
         lines.append(row("SAM3:", f"{sam3_pass1} objects (text-search)"))
+
+        if falcon_count > 0:
+            lines.append(row("Falcon:", f"+{falcon_count} new objects"))
 
         if ollama_pass_count == 0:
             lines.append(row("Ollama:", "all clear"))
@@ -1190,16 +1401,20 @@ class Processor:
             self._done(success=False)
             return
 
+        # Try to load Falcon Perception (non-critical – continues without if unavailable)
+        self._load_falcon()
+
         # Warmup Ollama if enabled (used for images + video spot-check)
         if use_ollama:
             if not self._warmup_ollama(model):
                 self._log("[WARN] Ollama warmup failed - verification may be slow.")
 
         if has_images:
+            falcon_str = " + Falcon" if self.falcon_loaded else ""
             if use_ollama:
-                self._log("Pipeline (images): SAM3 text-search \u2192 pixelation \u2192 Ollama")
+                self._log(f"Pipeline (images): SAM3 text-search{falcon_str} \u2192 pixelation \u2192 Ollama")
             else:
-                self._log("Pipeline (images): SAM3 text-search \u2192 pixelation")
+                self._log(f"Pipeline (images): SAM3 text-search{falcon_str} \u2192 pixelation")
         if has_videos:
             if use_ollama:
                 self._log("Pipeline (videos): SAM3 text-prompt \u2192 pixelation \u2192 Ollama spot-check")
@@ -1357,7 +1572,7 @@ class NeuralCensorApp(ctk.CTk):
         self.use_ollama_var = ctk.BooleanVar(value=True)
         self._ollama_switch = ctk.CTkSwitch(
             left,
-            text="Enable Ollama (Photos only)",
+            text="Enable Ollama",
             variable=self.use_ollama_var,
             font=ctk.CTkFont(family="Segoe UI", size=12),
             progress_color="#e94560",
@@ -1477,7 +1692,7 @@ class NeuralCensorApp(ctk.CTk):
         """Opens the settings dialog where all pipeline constants can be adjusted."""
         dialog = ctk.CTkToplevel(self)
         dialog.title("NeuralCensor – Pipeline Settings")
-        dialog.geometry("620x680")
+        dialog.geometry("620x700")
         dialog.configure(fg_color="#0d0d1a")
         dialog.resizable(False, False)
         dialog.transient(self)
@@ -1485,7 +1700,7 @@ class NeuralCensorApp(ctk.CTk):
 
         dialog.update_idletasks()
         x = self.winfo_x() + (self.winfo_width() - 620) // 2
-        y = self.winfo_y() + (self.winfo_height() - 680) // 2
+        y = self.winfo_y() + (self.winfo_height() - 700) // 2
         dialog.geometry(f"+{x}+{y}")
 
         ctk.CTkLabel(
@@ -1516,6 +1731,7 @@ class NeuralCensorApp(ctk.CTk):
 
         tab_blur   = tabs.add("Blur")
         tab_sam3   = tabs.add("SAM3")
+        tab_falcon = tabs.add("Falcon")
         tab_ollama = tabs.add("Ollama")
 
         entries: dict = {}
@@ -1595,16 +1811,49 @@ class NeuralCensorApp(ctk.CTk):
         add_row(sf_ollama, "video_spot_check_frames",   "Spot-Check Frames",   VIDEO_SPOT_CHECK_FRAMES,
                 "Frames sampled from rendered video for Ollama verification")
 
+        # Falcon tab
+        sf_falcon = ctk.CTkScrollableFrame(tab_falcon, fg_color="transparent")
+        sf_falcon.pack(fill="both", expand=True)
+
+        falcon_frame = ctk.CTkFrame(sf_falcon, fg_color="#1a1a2e", corner_radius=8)
+        falcon_frame.pack(fill="x", padx=8, pady=4)
+        ctk.CTkLabel(falcon_frame, text="Falcon Perception",
+            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+            text_color="#eaeaea").pack(anchor="w", padx=12, pady=(8, 0))
+        ctk.CTkLabel(falcon_frame, text="Additional AI detector for higher detection coverage (~1 GB VRAM)",
+            font=ctk.CTkFont(size=11), text_color="#a0a0b0").pack(anchor="w", padx=12)
+
+        falcon_var = ctk.BooleanVar(value=cfg.falcon_enabled)
+        entries["falcon_enabled"] = falcon_var
+        falcon_row = ctk.CTkFrame(falcon_frame, fg_color="transparent")
+        falcon_row.pack(fill="x", padx=12, pady=(2, 8))
+        ctk.CTkSwitch(
+            falcon_row,
+            text="Enable Falcon Perception",
+            variable=falcon_var,
+            font=ctk.CTkFont(family="Segoe UI", size=12),
+            progress_color="#e94560",
+            button_color="#ffffff",
+            button_hover_color="#eaeaea",
+        ).pack(side="left")
+
+        add_prompt_row(sf_falcon, "falcon_text_prompts", "Falcon Text Prompts", FALCON_TEXT_PROMPTS)
+        add_row(sf_falcon, "falcon_max_dimension", "Max Dimension", FALCON_MAX_DIMENSION,
+                "Maximum image edge length for Falcon inference (larger = more detail, slower)")
+
         def _apply():
             errors = []
             for key, var in entries.items():
                 raw = var.get().strip()
-                if key in ("sam3_text_prompts", "video_sam3_prompts"):
+                if key in ("sam3_text_prompts", "video_sam3_prompts", "falcon_text_prompts"):
                     parsed = [p.strip() for p in raw.split(",") if p.strip()]
                     if not parsed:
                         errors.append(f"{key}: at least one prompt required")
                         continue
                     setattr(cfg, key, parsed)
+                    continue
+                if key == "falcon_enabled":
+                    setattr(cfg, key, var.get())
                     continue
                 attr_default = getattr(_Cfg, key)
                 try:
@@ -1623,8 +1872,10 @@ class NeuralCensorApp(ctk.CTk):
         def _reset():
             cfg.reset()
             for key, var in entries.items():
-                if key in ("sam3_text_prompts", "video_sam3_prompts"):
+                if key in ("sam3_text_prompts", "video_sam3_prompts", "falcon_text_prompts"):
                     var.set(", ".join(getattr(cfg, key)))
+                elif key == "falcon_enabled":
+                    var.set(getattr(cfg, key))
                 else:
                     var.set(str(getattr(cfg, key)))
             err_text.configure(text="Reset to defaults.", text_color="#fbbf24")
@@ -2107,6 +2358,14 @@ class NeuralCensorApp(ctk.CTk):
                 if self._processor.sam3_proc2 is not None:
                     del self._processor.sam3_proc2
                     self._processor.sam3_proc2 = None
+            except Exception:
+                pass
+
+            # Unload Falcon Perception
+            try:
+                if self._processor.falcon_model is not None:
+                    del self._processor.falcon_model
+                    self._processor.falcon_model = None
             except Exception:
                 pass
 

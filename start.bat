@@ -5,7 +5,7 @@
 ::  window open no matter what. On success, "exit" closes it.
 :: ══════════════════════════════════════════════════════════════════
 if "%~1"=="__run__" goto :MAIN
-cmd /k "%~f0" __run__
+cmd /k ""%~f0" __run__"
 exit /b 0
 
 :MAIN
@@ -103,23 +103,32 @@ echo  [INFO] Activating virtual environment ...
 call venv\Scripts\activate.bat
 echo  [OK] Virtual environment activated.
 
-echo  [INFO] Upgrading pip ...
-python -m pip install --upgrade pip >nul 2>nul
-echo  [OK] pip upgraded.
 
 :: ─── Step 3: Install PyTorch with CUDA ────────────────────────────
 echo.
 echo  [Step 3/7] Installing PyTorch 2.10 with CUDA 12.8 ...
 echo  ----------------------------------------------------------------
+
+python -c "import torch" 2>nul
+if not errorlevel 1 (
+    echo  [OK] PyTorch already installed - skipping.
+    goto :TORCH_OK
+)
+
 echo  [INFO] Download size: approximately 3 GB
-echo         This can take 5-20 minutes. DO NOT close this window!
+echo         This can take 5-20 minutes.
+echo.
+echo         IMPORTANT: Do NOT click inside this window!
+echo         Clicking can freeze the installation.
+echo         Also, the screen might not show any progress
+echo         while downloading. Please be patient!
 echo.
 
-cmd /c "pip install torch==2.10.0 torchvision --index-url https://download.pytorch.org/whl/cu128 --progress-bar on"
+pip install torch==2.10.0 torchvision --index-url https://download.pytorch.org/whl/cu128 --progress-bar raw --timeout 120
 if errorlevel 1 (
     echo.
     echo  [WARNING] CUDA version failed. Trying CPU-only ...
-    cmd /c "pip install torch torchvision --progress-bar on"
+    pip install torch torchvision --progress-bar raw --timeout 120
     if errorlevel 1 (
         echo  [ERROR] PyTorch installation failed completely.
         echo  Type "exit" to close this window.
@@ -129,6 +138,7 @@ if errorlevel 1 (
 ) else (
     echo  [OK] PyTorch with CUDA installed successfully.
 )
+:TORCH_OK
 
 :: ─── Step 3.5: Install FFmpeg ─────────────────────────────────────
 echo.
@@ -173,22 +183,50 @@ rmdir /s /q "%TEMP%\ffmpeg_nc_ext" >nul 2>nul
 echo.
 echo  [Step 4/7] Installing base dependencies ...
 echo  ----------------------------------------------------------------
-cmd /c "pip install -r requirements.txt --progress-bar on"
+
+python -c "import customtkinter, ollama, cv2, PIL, piexif" 2>nul
+if not errorlevel 1 (
+    echo  [OK] Base dependencies already installed - skipping.
+    goto :DEPS_OK
+)
+
+pip install -r requirements.txt --progress-bar raw --timeout 120
 if errorlevel 1 (
     echo  [ERROR] Could not install dependencies.
     echo  Type "exit" to close this window.
     goto :EOF
 )
 echo  [OK] Base dependencies installed.
+:DEPS_OK
+
+python -c "import accelerate" 2>nul
+if not errorlevel 1 (
+    echo  [OK] accelerate already installed.
+) else (
+    echo  [INFO] Installing accelerate ^(required for Falcon Perception^) ...
+    pip install accelerate --progress-bar raw --timeout 60
+    if errorlevel 1 (
+        echo  [WARN] accelerate could not be installed. Falcon Perception will be unavailable.
+    ) else (
+        echo  [OK] accelerate installed.
+    )
+)
 
 :: ─── Step 5: Install SAM3 ─────────────────────────────────────────
 echo.
 echo  [Step 5/7] Installing SAM3 from GitHub ...
 echo  ----------------------------------------------------------------
+
+python -c "import sam2" 2>nul
+if not errorlevel 1 (
+    echo  [OK] SAM3 already installed - skipping.
+    goto :SAM3_INST_OK
+)
+
 echo  [INFO] Requires Git: https://git-scm.com/downloads
 echo         This may take 2-5 minutes.
 echo.
-cmd /c "pip install git+https://github.com/facebookresearch/sam3.git"
+pip install git+https://github.com/facebookresearch/sam3.git --progress-bar raw
 if errorlevel 1 (
     echo  [ERROR] SAM3 installation failed.
     echo          Make sure Git is installed: https://git-scm.com/downloads
@@ -196,10 +234,16 @@ if errorlevel 1 (
     goto :EOF
 )
 echo  [OK] SAM3 installed.
-echo.
-echo  [INFO] Installing SAM3 extras ...
-cmd /c "pip install einops pycocotools triton-windows"
-echo  [OK] SAM3 dependencies ready.
+:SAM3_INST_OK
+
+python -c "import einops, transformers" 2>nul
+if not errorlevel 1 (
+    echo  [OK] SAM3 extras already installed.
+) else (
+    echo  [INFO] Installing SAM3 extras ...
+    pip install einops pycocotools triton-windows transformers --progress-bar raw --timeout 120
+    echo  [OK] SAM3 dependencies ready.
+)
 
 :: ─── Step 6: HuggingFace Login and SAM3 Checkpoint ────────────────
 if exist "checkpoints\sam3\model.safetensors" goto :SAM3_OK

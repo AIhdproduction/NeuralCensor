@@ -16,6 +16,9 @@ einops
 pycocotools
 triton-windows
 
+# Falcon Perception (additional detector)
+transformers
+
 # PyTorch with CUDA – installed by start.bat:
 #   pip install torch==2.10.0 torchvision --index-url https://download.pytorch.org/whl/cu128
 #
