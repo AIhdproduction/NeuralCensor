@@ -54,11 +54,14 @@ Every step runs **100% locally** on your machine. No images are ever uploaded to
 | **Pre-read** | All frames loaded into RAM for parallel processing |
 | **SAM3 text-prompt** | Every frame segmented for "person", "car", "truck" — no skipping |
 | **Dual-GPU** | Frames distributed across available GPUs automatically |
+| **Temporal smoothing** | Single-frame gaps where SAM3 missed an object are filled from the adjacent real detection (max 1 frame propagation) |
 | **Blur** | All frames rendered in parallel on CPU cores |
 | **Audio** | Original audio merged back via FFmpeg |
 | **Ollama spot-check** | 10 evenly distributed frames verified by Vision LLM (if Ollama enabled) |
 
 > **Why SAM3 on every frame?** Frame-skipping + interpolation causes flickering when objects move. Processing every frame guarantees pixel-perfect, flicker-free anonymization throughout the entire video.
+>
+> **Temporal smoothing** catches the remaining edge cases: videos with non-integer frame rates (e.g. 29.97, 23.976) can cause SAM3 to miss an object on a single isolated frame. The smoothing pass fills those gaps by copying masks from the direct neighbor frame — but only if that neighbor has a real SAM3 detection. Propagation is strictly limited to 1 frame so masks are never invented in regions where nothing was detected.
 
 ### Why does SAM 3 scan the original image — won't it find already-blurred areas again?
 
