@@ -38,8 +38,9 @@ OLLAMA_MAX_SIZE     = 1536   # Maximum edge length for Ollama input
 AUTO_OUTPUT_NAME    = "NeuralCensor_Blurry"
 
 SAM3_MIN_MASK_PX    = 100               # min mask pixels before falling back to bbox
-SAM3_CONFIDENCE     = 0.20              # confidence for SAM3 text-search (higher = fewer false positives)
-SAM3_CONFIDENCE_RETRY = 0.15            # lower confidence for Ollama-triggered re-passes
+SAM3_CONFIDENCE     = 0.15              # confidence for SAM3 text-search on images
+VIDEO_SAM3_CONFIDENCE = 0.20            # confidence for SAM3 text-search on video frames (higher = faster)
+SAM3_CONFIDENCE_RETRY = 0.12            # lower confidence for Ollama re-passes and video mask-drop recovery
 SAM3_OVERLAP_IOU    = 0.3               # IoU threshold: new mask vs 1st-pass masks
 MAX_OLLAMA_PASSES   = 3                 # max Ollama-triggered SAM3 re-passes per image
 VIDEO_SPOT_CHECK_FRAMES = 10            # frames to sample for Ollama spot-check after video rendering
@@ -100,6 +101,7 @@ class _Cfg:
     ollama_max_size         = OLLAMA_MAX_SIZE
     sam3_min_mask_px        = SAM3_MIN_MASK_PX
     sam3_confidence         = SAM3_CONFIDENCE
+    video_sam3_confidence   = VIDEO_SAM3_CONFIDENCE
     sam3_confidence_retry   = SAM3_CONFIDENCE_RETRY
     sam3_overlap_iou        = SAM3_OVERLAP_IOU
     max_ollama_passes       = MAX_OLLAMA_PASSES
@@ -118,6 +120,7 @@ class _Cfg:
         self.ollama_max_size         = OLLAMA_MAX_SIZE
         self.sam3_min_mask_px        = SAM3_MIN_MASK_PX
         self.sam3_confidence         = SAM3_CONFIDENCE
+        self.video_sam3_confidence   = VIDEO_SAM3_CONFIDENCE
         self.sam3_confidence_retry   = SAM3_CONFIDENCE_RETRY
         self.sam3_overlap_iou        = SAM3_OVERLAP_IOU
         self.max_ollama_passes       = MAX_OLLAMA_PASSES
@@ -886,6 +889,12 @@ class Processor:
 
         self._status(f"SAM3: processing {len(kf_indices)} frames ({n_sam3}x GPU) ...")
 
+        # Apply video confidence to all active SAM3 instances (0.20 for video)
+        orig_confs = []
+        for inst in sam3_instances:
+            orig_confs.append(getattr(inst, 'confidence_threshold', None))
+            inst.confidence_threshold = cfg.video_sam3_confidence
+
         kf_masks_map: dict[int, list[np.ndarray]] = {}
         kf_done = 0
 
@@ -943,6 +952,12 @@ class Processor:
         all_frame_masks: list[list[np.ndarray]] = [
             kf_masks_map.get(i, []) for i in range(actual_total)
         ]
+
+        # Restore original confidence thresholds on all SAM3 instances
+        for inst, orig_c in zip(sam3_instances, orig_confs):
+            if orig_c is not None:
+                inst.confidence_threshold = orig_c
+
 
         # ── Phase 3.1: Sequential mask-drop detection & re-pass ─────────────
         # If frame i loses > 50% of the mask area from frame i-1, re-run with lower confidence.

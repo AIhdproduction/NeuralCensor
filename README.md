@@ -185,8 +185,9 @@ The settings dialog has four tabs:
 
 | Setting | Default | Description |
 |---|---|---|
-| Confidence | 0.20 | Detection confidence threshold (lower = more detections) |
-| Confidence (Retry) | 0.15 | Lower confidence for Ollama re-passes and video mask-drop recovery |
+| Confidence | 0.15 | Image detection threshold (lower = more detections) |
+| Video Confidence | 0.20 | Video frame detection threshold |
+| Confidence (Retry) | 0.12 | Lower confidence for Ollama re-passes and video mask-drop recovery |
 | Min Mask Pixels | 100 | Masks smaller than this are discarded |
 | Overlap IoU Threshold | 0.3 | Masks overlapping existing ones above this ratio are skipped |
 | Image SAM3 Prompts | person, car, truck, bus, motorcycle, license plate | Text prompts for image segmentation |
